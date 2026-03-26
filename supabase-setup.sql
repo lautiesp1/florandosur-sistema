@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS productos (
   precio      NUMERIC(10,2) NOT NULL DEFAULT 0,
   stock       INTEGER NOT NULL DEFAULT 0,
   categoria   TEXT,
+  imagen_url  TEXT,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -1,145 +1,154 @@
-# FlorandoSur — Sistema de Gestión
+# FlorandoSur — Sistema de Gestion
 
-Sistema web para gestión de inventario, clientes, ventas y deliveries.
+Sistema web gratuito para gestionar inventario, clientes, ventas y entregas.
 
----
+## Inicio Rapido (6 Pasos)
 
-## ✅ Pasos para poner en marcha
+### 1. Crear Supabase
+- Ve a https://supabase.com  (Sign up)
+- Nuevo proyecto: `florandosur`
+- Region: **South America (São Paulo)**
 
-### PASO 1 — Crear cuenta en Supabase
+### 2. Crear tablas
+- SQL Editor → New query
+- Copia/pega `supabase-setup.sql`
+- Click "Run" ✓
 
-1. Ir a **https://supabase.com** y crear cuenta gratuita
-2. Hacer clic en **"New project"**
-3. Elegir nombre: `florandosur`
-4. Crear una contraseña segura para la base de datos (guardala)
-5. Región: **South America (São Paulo)** — la más cercana a Argentina
-6. Esperar ~2 minutos mientras se crea el proyecto
+### 3. Crear usuarios
+- Authentication → Users → Add user
+- Admin: `admin@florandosur.com`
+- Metadata: `{"rol":"admin","nombre":"Tu Nombre"}`
+- Delivery: `juan@florandosur.com`
+- Metadata: `{"rol":"delivery","nombre":"Juan"}`
 
----
+### 4. Conectar app
+- Supabase → Project Settings → API
+- Copia URL y anon Key
+- Pega en `js/supabase.js`
 
-### PASO 2 — Crear las tablas
+### 5. Storage para fotos
+- Supabase → Storage → Create bucket
+- Nombre: `producto-imagenes`
+- Mark "Public bucket" ✓
 
-1. En el panel de Supabase, ir a **SQL Editor** → **New query**
-2. Copiar y pegar todo el contenido del archivo `supabase-setup.sql`
-3. Hacer clic en **Run** (ícono de play)
-4. Verificar que aparece "Success" sin errores
-
----
-
-### PASO 3 — Crear los usuarios
-
-1. En Supabase ir a **Authentication** → **Users** → **Add user**
-
-**Usuario admin (tu amigo):**
-- Email: `admin@florandosur.com` (o el que quiera)
-- Password: una contraseña segura
-- Hacer clic en "Add user"
-- Después de crearlo, hacer clic en el usuario → **Edit** → agregar en "User Metadata":
-  ```json
-  { "rol": "admin", "nombre": "Tu nombre" }
-  ```
-
-**Usuario Juan (delivery):**
-- Email: `juan@florandosur.com`
-- Password: una contraseña segura
-- Hacer clic en "Add user"
-- Editar y agregar en "User Metadata":
-  ```json
-  { "rol": "delivery", "nombre": "Juan" }
-  ```
+### 6. Abrir app
+- **Desarrollo**: VS Code + Live Server → `index.html`
+- **Produccion**: Sube a Netlify (drag & drop)
 
 ---
 
-### PASO 4 — Conectar el proyecto
+## Documentacion Completa
 
-1. En Supabase ir a **Project Settings** → **API**
-2. Copiar:
-   - **Project URL** (algo como `https://xxxxx.supabase.co`)
-   - **anon / public key**
-
-3. Abrir el archivo `js/supabase.js` en VS Code
-4. Reemplazar los valores:
-   ```javascript
-   const SUPABASE_URL = 'https://TU_URL.supabase.co'
-   const SUPABASE_ANON_KEY = 'eyJhbGc...'
-   ```
+**Ver [README_COMPLETO.md](README_COMPLETO.md)** para:
+- Caracteristicas detalladas del sistema
+- Descripcion de modulos (Dashboard, Inventario, Clientes, Ventas, Pedidos)
+- Como funciona el sistema de imagenes
+- Roles y permisos de usuarios
+- Estructura del proyecto
+- 20+ preguntas frecuentes (FAQ)
+- Seccion de troubleshooting
+- Stack tecnico y mejoras
 
 ---
 
-### PASO 5 — Abrir el proyecto
+## Caracteristicas principales
 
-**Opción A — Con VS Code (desarrollo):**
-1. Instalar extensión "Live Server" en VS Code
-2. Hacer clic derecho en `index.html` → "Open with Live Server"
-3. Acceder en `http://127.0.0.1:5500`
-
-**Opción B — Subir a Netlify (producción, gratis):**
-1. Ir a **https://netlify.com** y crear cuenta
-2. Arrastrar la carpeta `FlorandoSur` al área de deploy
-3. Netlify te da una URL pública tipo `florandosur.netlify.app`
+- Inventario con fotos optimizadas (max 500KB)
+- Gestion de clientes con historial
+- Registro de ventas rapido
+- Pedidos/Entregas con seguimiento
+- Dashboard con estadisticas  
+- Alertas de bajo stock
+- Busqueda instantanea
+- Responsive (movil, tablet, desktop)
+- Roles (Admin + Delivery)
+- Datos en la nube (Supabase)
 
 ---
 
-## 📱 Cómo usar el sistema
+## Costos
 
-### Login
-- Entrar a la URL del sistema
-- Ingresar email y contraseña
-- El sistema redirige automáticamente según el rol
+Gratis para siempre:
+- 500 MB base de datos
+- 1 GB Storage
+- 50.000 llamadas/mes
+- Usuarios ilimitados
+- Backups automaticos
 
-### Tu amigo (admin) puede:
-| Módulo | Qué puede hacer |
+---
+
+## Como usar
+
+### Admin puede:
+| Modulo | Que puede hacer |
 |--------|----------------|
-| **Dashboard** | Ver resumen del día, alertas de stock |
-| **Inventario** | Agregar/editar/eliminar productos, ver stock |
-| **Clientes** | Gestionar base de clientes, ver historial de compras |
-| **Ventas** | Registrar ventas con múltiples productos |
-| **Pedidos** | Crear pedidos y cambiar su estado |
+| **Dashboard** | Ver resumen del dia, alertas de stock |
+| **Inventario** | Agregar/editar/eliminar productos |
+| **Clientes** | Gestionar clientes, ver historial |
+| **Ventas** | Registrar ventas con multiples productos |
+| **Pedidos** | Crear pedidos y cambiar estado |
 
-### Juan (delivery) puede:
-| Módulo | Qué puede hacer |
+### Delivery (Juan) puede:
+| Modulo | Que puede hacer |
 |--------|----------------|
 | **Mis pedidos** | Ver pedidos pendientes y en camino |
-| | Marcar "Salir a entregar" → pasa a "En camino" |
+| | Marcar "Salir a entregar" |
 | | Marcar "Entregado" cuando llega |
 
 ---
 
-## 📂 Estructura de archivos
+## Configuracion
+
+**Archivo a editar: `js/supabase.js`**
+
+```javascript
+const SUPABASE_URL = 'https://TU_URL.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGc...'
+```
+
+Obten valores desde: Supabase → Project Settings → API
+
+---
+
+## Preguntas frecuentes
+
+**Cuesta dinero?**
+No, Supabase free tier es suficiente.
+
+**Pierdo datos si apago la compu?**
+No, todo esta en la nube.
+
+**Juan puede ver inventario y ventas?**
+No, solo ve sus pedidos (acceso restringido).
+
+**Funciona sin internet?**
+No, necesita conexion (es web).
+
+**Las fotos se guardan en la BD?**
+No, van a Supabase Storage.
+
+**Ver mas FAQs** en [README_COMPLETO.md](README_COMPLETO.md)
+
+---
+
+## Archivos importantes
 
 ```
 FlorandoSur/
-├── index.html              ← Página de login
-├── supabase-setup.sql      ← Script para crear las tablas
-├── README.md               ← Este archivo
-├── css/
-│   └── styles.css          ← Estilos globales
-├── js/
-│   ├── supabase.js         ← ⚠️ CONFIGURAR URL y KEY acá
-│   └── sidebar.js          ← Menú lateral
-└── pages/
-    ├── dashboard.html      ← Panel principal
-    ├── inventario.html     ← Gestión de productos
-    ├── clientes.html       ← Base de clientes
-    ├── ventas.html         ← Registro de ventas
-    └── pedidos.html        ← Deliveries (admin + Juan)
+├── js/supabase.js              ← EDITA AQUI (URL + KEY)
+├── supabase-setup.sql          ← Script BD
+├── README.md                   ← Este archivo
+└── README_COMPLETO.md          ← Documentacion detallada
 ```
 
 ---
 
-## ❓ Preguntas frecuentes
+## Aprende mas
 
-**¿Los datos se guardan en la nube?**
-Sí, todo se guarda en Supabase (PostgreSQL). No se pierde nada si se cierra el navegador.
+- [Documentacion Completa](README_COMPLETO.md)
+- [Setup Storage](SUPABASE_STORAGE_SETUP.md)
+- [Supabase Docs](https://supabase.com/docs)
 
-**¿Pueden usar el sistema desde el celular?**
-Sí, el sistema es responsive y funciona en cualquier dispositivo con internet.
+---
 
-**¿Juan puede ver el inventario o las ventas?**
-No, Juan solo ve sus pedidos asignados. No tiene acceso a los demás módulos.
-
-**¿Cómo recupero una contraseña olvidada?**
-El admin puede resetear contraseñas desde el panel de Supabase → Authentication → Users.
-
-**¿El plan gratuito de Supabase tiene límites?**
-El plan gratuito incluye 500MB de base de datos y 50.000 solicitudes/mes, suficiente para este negocio.
+Gracias por usar FlorandoSur

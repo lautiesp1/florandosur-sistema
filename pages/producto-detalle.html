@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlorandoSur — Detalle Producto</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <style>
+    .producto-detalle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .producto-imagen-container {
+      position: relative;
+    }
+
+    .producto-imagen {
+      width: 100%;
+      max-height: 500px;
+      object-fit: contain;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      border: 2px solid var(--border);
+    }
+
+    .producto-sin-imagen {
+      width: 100%;
+      height: 300px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      border: 2px dashed var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 8px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .producto-info h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .producto-precio {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    .producto-badges {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .producto-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .badge-categoria {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+
+    .badge-stock-disponible {
+      background: #E8F5E9;
+      color: #2E7D32;
+    }
+
+    .badge-stock-bajo {
+      background: #FFF3E0;
+      color: #E65100;
+    }
+
+    .badge-sin-stock {
+      background: #FFEBEE;
+      color: #C62828;
+    }
+
+    .producto-seccion {
+      margin-bottom: 24px;
+    }
+
+    .producto-seccion-titulo {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .producto-seccion-contenido {
+      font-size: 15px;
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    .producto-acciones {
+      display: flex;
+      gap: 12px;
+      margin-top: 32px;
+      flex-wrap: wrap;
+    }
+
+    .producto-acciones .btn {
+      flex: 1;
+      min-width: 140px;
+    }
+
+    @media (max-width: 768px) {
+      .producto-detalle {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+
+      .producto-info h1 {
+        font-size: 24px;
+      }
+
+      .producto-precio {
+        font-size: 28px;
+      }
+
+      .producto-acciones {
+        flex-direction: column;
+      }
+
+      .producto-acciones .btn {
+        width: 100%;
+        min-width: unset;
+      }
+      
+      .producto-imagen {
+        max-height: 350px;
+      }
+      
+      .producto-sin-imagen {
+        height: 200px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .producto-detalle {
+        padding: 12px;
+        gap: 16px;
+      }
+      
+      .producto-info h1 {
+        font-size: 20px;
+        margin-bottom: 12px;
+      }
+
+      .producto-precio {
+        font-size: 24px;
+        margin-bottom: 12px;
+      }
+      
+      .producto-badges {
+        margin-bottom: 16px;
+        gap: 6px;
+      }
+      
+      .producto-badge {
+        padding: 4px 10px;
+        font-size: 12px;
+      }
+      
+      .producto-seccion {
+        margin-bottom: 16px;
+      }
+      
+      .producto-seccion-titulo {
+        font-size: 12px;
+        margin-bottom: 6px;
+      }
+      
+      .producto-seccion-contenido {
+        font-size: 14px;
+      }
+      
+      .producto-imagen {
+        max-height: 280px;
+        border-radius: 10px;
+      }
+      
+      .producto-sin-imagen {
+        height: 160px;
+        border-radius: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+  <div style="display:flex; flex-direction:column; overflow:hidden;">
+
+    <header class="topbar">
+      <span class="page-title" id="topbar-titulo">Detalle Producto</span>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost" id="btn-volver">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m7-7-7 7 7 7"/></svg>
+          Volver
+        </button>
+      </div>
+    </header>
+
+    <main class="main-content fade-up">
+      <div id="contenedor-detalle">
+        <div style="text-align: center; padding: 40px;">
+          <div class="spinner" style="margin: 0 auto; margin-bottom: 16px;"></div>
+          <p class="text-muted">Cargando producto...</p>
+        </div>
+      </div>
+    </main>
+
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script type="module">
+  import { supabase, requiereAuth, toast } from '../js/supabase.js'
+  import { renderSidebar } from '../js/sidebar.js'
+
+  const user = await requiereAuth()
+  renderSidebar('inventario', user)
+
+  // Obtener ID del producto desde URL
+  const params = new URLSearchParams(window.location.search)
+  const productoId = params.get('id')
+
+  if (!productoId) {
+    document.getElementById('contenedor-detalle').innerHTML = `
+      <div style="text-align: center; padding: 40px;">
+        <p style="color: var(--text-muted);">⚠️ Producto no encontrado</p>
+      </div>
+    `
+  } else {
+    cargarProducto()
+  }
+
+  document.getElementById('btn-volver').addEventListener('click', () => {
+    history.back()
+  })
+
+  async function cargarProducto() {
+    const { data: producto, error } = await supabase
+      .from('productos')
+      .select('*')
+      .eq('id', productoId)
+      .single()
+
+    if (error || !producto) {
+      document.getElementById('contenedor-detalle').innerHTML = `
+        <div style="text-align: center; padding: 40px;">
+          <p style="color: var(--text-muted);">⚠️ Error al cargar el producto</p>
+        </div>
+      `
+      return
+    }
+
+    renderDetalleProducto(producto)
+  }
+
+  function renderDetalleProducto(p) {
+    // Determinar badge de stock
+    let badgeStock
+    if (p.stock === 0) {
+      badgeStock = `<div class="producto-badge badge-sin-stock">Sin stock</div>`
+    } else if (p.stock <= 3) {
+      badgeStock = `<div class="producto-badge badge-stock-bajo">Bajo stock (${p.stock} un.)</div>`
+    } else {
+      badgeStock = `<div class="producto-badge badge-stock-disponible">Disponible (${p.stock} un.)</div>`
+    }
+
+    const imagenHTML = p.imagen_url
+      ? `<img src="${p.imagen_url}" alt="${p.nombre}" class="producto-imagen" />`
+      : `<div class="producto-sin-imagen">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          <span>Sin imagen</span>
+        </div>`
+
+    document.getElementById('contenedor-detalle').innerHTML = `
+      <div class="producto-detalle">
+        <div class="producto-imagen-container">
+          ${imagenHTML}
+        </div>
+        <div class="producto-info">
+          <h1>${p.nombre}</h1>
+          <div class="producto-precio">$${Number(p.precio).toLocaleString('es-AR')}</div>
+          
+          <div class="producto-badges">
+            ${badgeStock}
+            ${p.categoria ? `<div class="producto-badge badge-categoria">${p.categoria}</div>` : ''}
+          </div>
+
+          ${p.descripcion ? `
+            <div class="producto-seccion">
+              <div class="producto-seccion-titulo">Descripción</div>
+              <div class="producto-seccion-contenido">${p.descripcion}</div>
+            </div>
+          ` : ''}
+
+          ${p.categoria ? `
+            <div class="producto-seccion">
+              <div class="producto-seccion-titulo">Categoría</div>
+              <div class="producto-seccion-contenido">${p.categoria}</div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `
+  }
+</script>
+
+</body>
+</html>

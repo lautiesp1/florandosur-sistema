@@ -771,7 +771,7 @@ select.form-control { cursor: pointer; }
   body {
     width: 100%;
     height: 100%;
-    overflow: hidden;
+    overflow: visible;
   }
   
   .app-shell {
@@ -779,16 +779,17 @@ select.form-control { cursor: pointer; }
     grid-template-rows: 50px 1fr;
     min-height: 100vh;
     height: 100vh;
-    overflow: hidden;
+    overflow: visible;
   }
   
   .app-shell > div:nth-child(2) {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
     grid-column: 1;
     grid-row: 1 / -1;
-    height: 100vh;
+    height: auto;
+    min-height: calc(100vh - 50px);
   }
   
   .sidebar {
@@ -816,7 +817,7 @@ select.form-control { cursor: pointer; }
   .topbar {
     grid-column: 1;
     grid-row: 1;
-    padding: 0 8px;
+    padding: 0 10px;
     height: 50px;
     display: flex;
     align-items: center;
@@ -824,6 +825,8 @@ select.form-control { cursor: pointer; }
     position: static;
     z-index: 50;
     gap: 6px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
   }
   
   .topbar-hamburger {
@@ -845,8 +848,9 @@ select.form-control { cursor: pointer; }
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding: 16px 12px;
+    padding-bottom: 80px;
     min-height: 0;
-    padding-bottom: 40px;
+    background: var(--bg);
   }
   
   .page-title {
@@ -870,14 +874,23 @@ select.form-control { cursor: pointer; }
   
   .stat-card {
     padding: 16px 14px;
+    border-radius: 10px;
   }
   
   .stat-value {
     font-size: 22px;
+    font-weight: 600;
   }
   
   .stat-label {
-    font-size: 10px;
+    font-size: 11px;
+    margin-top: 6px;
+  }
+  
+  .badge {
+    padding: 4px 10px;
+    font-size: 11px;
+    border-radius: 12px;
   }
   
   .dashboard-grid {
@@ -902,6 +915,30 @@ select.form-control { cursor: pointer; }
   
   .form-grid-2 {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .form-group {
+    margin-bottom: 12px;
+  }
+  
+  .form-control {
+    padding: 11px 13px;
+    font-size: 15px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    transition: all 0.2s ease;
+  }
+  
+  .form-control:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 216, 79, 0.1);
+  }
+  
+  .form-label {
+    font-size: 13px;
+    margin-bottom: 6px;
   }
   
   .card {
@@ -944,16 +981,57 @@ select.form-control { cursor: pointer; }
     font-size: 10px;
   }
   
+  .btn {
+    padding: 10px 14px;
+    font-size: 14px;
+    height: 38px;
+    border-radius: 8px;
+  }
+  
   .btn svg {
-    width: 11px;
-    height: 11px;
-    margin-right: 2px;
+    width: 14px;
+    height: 14px;
+    margin-right: 6px;
+  }
+  
+  .btn-sm {
+    height: 36px;
+    padding: 8px 12px;
+    font-size: 13px;
   }
   
   .modal {
-    max-width: 90vw;
-    max-height: 85vh;
-    margin: 0 auto;
+    max-width: 95vw;
+    max-height: 90vh;
+    margin: auto 10px;
+    border-radius: 12px;
+  }
+  
+  .modal-header {
+    padding: 16px 14px;
+    border-bottom: 1px solid var(--border);
+    border-radius: 12px 12px 0 0;
+  }
+  
+  .modal-body {
+    padding: 14px 14px;
+    max-height: 60vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .modal-footer {
+    padding: 12px 14px;
+    gap: 8px;
+    border-top: 1px solid var(--border);
+    border-radius: 0 0 12px 12px;
+  }
+  
+  .modal-footer .btn {
+    flex: 1;
+    padding: 11px 12px;
+    font-size: 13px;
+    height: 40px;
   }
   
   .search-box {
@@ -983,6 +1061,41 @@ select.form-control { cursor: pointer; }
   
   .toast {
     max-width: 100%;
+  }
+  
+  tbody td {
+    padding: 14px 12px;
+    font-size: 13px;
+  }
+  
+  table {
+    font-size: 12px;
+  }
+  
+  thead th {
+    padding: 10px 12px;
+    font-size: 11px;
+  }
+  
+  .btn-icon {
+    width: 36px;
+    height: 36px;
+    padding: 8px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+  
+  .btn-icon:hover {
+    background: var(--bg-secondary);
+  }
+  
+  .btn-danger {
+    padding: 8px 12px;
+    height: 36px;
+    font-size: 12px;
   }
 }
 
@@ -1150,3 +1263,18 @@ select.form-control { cursor: pointer; }
 .font-display { font-family: var(--font-display); }
 .text-muted { color: var(--text-muted); font-size: 13px; }
 .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+/* ── Spinner Loading Animation ── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
