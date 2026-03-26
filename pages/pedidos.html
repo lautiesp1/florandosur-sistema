@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlorandoSur — Pedidos</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body>
+
+<div class="app-shell">
+
+  <div style="display:flex; flex-direction:column; overflow:hidden;">
+
+    <header class="topbar">
+      <span class="page-title" id="page-title">Pedidos</span>
+      <div class="topbar-actions" id="topbar-actions">
+        <!-- Se llena según rol -->
+      </div>
+    </header>
+
+    <main class="main-content fade-up">
+
+      <!-- Filtros de estado (solo admin) -->
+      <div id="filtros-estado" style="display:flex; gap:8px; margin-bottom:20px; display:none;">
+        <button class="btn btn-ghost btn-sm filtro active" data-estado="todos">Todos</button>
+        <button class="btn btn-ghost btn-sm filtro" data-estado="pendiente">Pendientes</button>
+        <button class="btn btn-ghost btn-sm filtro" data-estado="en_camino">En camino</button>
+        <button class="btn btn-ghost btn-sm filtro" data-estado="entregado">Entregados</button>
+      </div>
+
+      <!-- Panel Juan: aviso de rol -->
+      <div id="aviso-delivery" style="
+        display:none;
+        background:var(--accent-light);
+        border:1px solid var(--accent);
+        border-radius:var(--radius-lg);
+        padding:14px 18px;
+        margin-bottom:20px;
+        font-size:13.5px;
+        color:var(--accent);
+      ">
+        <strong>Hola Juan.</strong> Acá aparecen tus pedidos del día. Actualizá el estado cuando salgas a entregar.
+      </div>
+
+      <!-- Tabla -->
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr id="tabla-headers">
+              <!-- se llena según rol -->
+            </tr>
+          </thead>
+          <tbody id="tabla-body">
+            <tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted);">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Modal: nuevo pedido (solo admin) -->
+<div id="modal-overlay" class="modal-overlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Nuevo pedido</span>
+      <button class="btn-icon" id="btn-cerrar-modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Cliente *</label>
+        <select id="f-cliente" class="form-control">
+          <option value="">Seleccioná un cliente...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Dirección de entrega *</label>
+        <input id="f-direccion" class="form-control" type="text" placeholder="Ej: Av. Colón 1234, Córdoba" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notas para Juan</label>
+        <input id="f-notas" class="form-control" type="text" placeholder="Ej: Llamar al timbre 3B, paga con efectivo" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancelar">Cancelar</button>
+      <button class="btn btn-primary" id="btn-guardar">Crear pedido</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script type="module">
+  import { supabase, requiereAuth, getRol, toast, confirmar } from '../js/supabase.js'
+  import { renderSidebar } from '../js/sidebar.js'
+
+  const user = await requiereAuth()
+  const rol = await getRol()
+  renderSidebar('pedidos', user)
+
+  let pedidos  = []
+  let clientes = []
+  let filtroActivo = 'todos'
+
+  const esAdmin = rol === 'admin'
+
+  // ── Configurar UI según rol ───────────────────────
+
+  if (esAdmin) {
+    document.getElementById('page-title').textContent = 'Pedidos de delivery'
+    document.getElementById('topbar-actions').innerHTML = `
+      <button class="btn btn-primary" id="btn-nuevo">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nuevo pedido
+      </button>`
+    document.getElementById('filtros-estado').style.display = 'flex'
+    document.getElementById('tabla-headers').innerHTML = `
+      <th>Cliente</th>
+      <th>Dirección</th>
+      <th>Notas</th>
+      <th>Estado</th>
+      <th>Fecha</th>
+      <th style="width:100px;"></th>`
+
+    document.getElementById('btn-nuevo')?.addEventListener('click', () => abrirModal())
+  } else {
+    // Juan
+    document.getElementById('page-title').textContent = 'Mis pedidos'
+    document.getElementById('aviso-delivery').style.display = 'block'
+    document.getElementById('tabla-headers').innerHTML = `
+      <th>Cliente</th>
+      <th>Dirección</th>
+      <th>Notas</th>
+      <th>Estado</th>
+      <th>Acción</th>`
+  }
+
+  // ── Cargar ────────────────────────────────────────
+
+  async function cargar() {
+    let query = supabase
+      .from('pedidos')
+      .select('id, estado, direccion_entrega, notas, created_at, clientes(nombre, telefono)')
+      .order('created_at', { ascending: false })
+
+    if (!esAdmin) {
+      // Juan solo ve pendientes y en camino
+      query = query.in('estado', ['pendiente', 'en_camino'])
+    }
+
+    const { data, error } = await query
+    if (error) { toast('Error al cargar pedidos.', 'error'); return }
+    pedidos = data
+    renderTabla()
+
+    // Cargar clientes para el modal
+    if (esAdmin) {
+      const { data: c } = await supabase.from('clientes').select('id, nombre').order('nombre')
+      clientes = c ?? []
+      poblarSelectClientes()
+    }
+  }
+
+  function renderTabla() {
+    const tbody = document.getElementById('tabla-body')
+    let lista = pedidos
+
+    if (esAdmin && filtroActivo !== 'todos') {
+      lista = pedidos.filter(p => p.estado === filtroActivo)
+    }
+
+    if (!lista || lista.length === 0) {
+      tbody.innerHTML = `
+        <tr><td colspan="${esAdmin ? 6 : 5}">
+          <div class="empty-state">
+            <div class="empty-state-icon">🛵</div>
+            <div class="empty-state-title">Sin pedidos${!esAdmin ? ' pendientes' : ''}</div>
+            <div class="empty-state-sub">${esAdmin ? 'Creá el primer pedido con el botón de arriba.' : 'Cuando tengas pedidos asignados aparecerán acá.'}</div>
+          </div>
+        </td></tr>`
+      return
+    }
+
+    const estadoBadge = {
+      pendiente: '<span class="badge badge-yellow">Pendiente</span>',
+      en_camino: '<span class="badge badge-green">En camino</span>',
+      entregado: '<span class="badge badge-gray">Entregado</span>',
+    }
+
+    tbody.innerHTML = lista.map(p => {
+      const fecha = new Date(p.created_at).toLocaleDateString('es-AR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })
+
+      if (esAdmin) {
+        return `
+          <tr>
+            <td>
+              <div style="font-weight:500;">${p.clientes?.nombre ?? '—'}</div>
+              ${p.clientes?.telefono ? `<div class="td-muted" style="font-size:12px;">${p.clientes.telefono}</div>` : ''}
+            </td>
+            <td class="td-muted" style="max-width:160px; font-size:13px;">${p.direccion_entrega ?? '—'}</td>
+            <td class="td-muted" style="max-width:160px; font-size:12px; font-style:italic;">${p.notas ?? '—'}</td>
+            <td>${estadoBadge[p.estado] ?? p.estado}</td>
+            <td class="td-muted" style="white-space:nowrap; font-size:12px;">${fecha}</td>
+            <td>
+              <div style="display:flex; gap:4px; justify-content:flex-end;">
+                <select class="form-control" style="font-size:12px; padding:4px 8px; width:auto;"
+                  onchange="cambiarEstado('${p.id}', this.value)">
+                  <option value="pendiente" ${p.estado==='pendiente'?'selected':''}>Pendiente</option>
+                  <option value="en_camino" ${p.estado==='en_camino'?'selected':''}>En camino</option>
+                  <option value="entregado" ${p.estado==='entregado'?'selected':''}>Entregado</option>
+                </select>
+                <button class="btn btn-danger btn-sm" onclick="eliminarPedido('${p.id}')">✕</button>
+              </div>
+            </td>
+          </tr>`
+      } else {
+        // Vista de Juan: botones de acción grandes
+        let accionBtn = ''
+        if (p.estado === 'pendiente') {
+          accionBtn = `<button class="btn btn-primary btn-sm" onclick="cambiarEstado('${p.id}','en_camino')">Salir a entregar</button>`
+        } else if (p.estado === 'en_camino') {
+          accionBtn = `<button class="btn btn-ghost btn-sm" style="border-color:var(--success); color:var(--success);" onclick="cambiarEstado('${p.id}','entregado')">Marcar entregado</button>`
+        }
+
+        return `
+          <tr>
+            <td>
+              <div style="font-weight:500;">${p.clientes?.nombre ?? '—'}</div>
+              ${p.clientes?.telefono ? `<a href="https://wa.me/54${p.clientes.telefono.replace(/\D/g,'')}" target="_blank" style="font-size:12px; color:var(--accent);">${p.clientes.telefono} (WhatsApp)</a>` : ''}
+            </td>
+            <td style="font-size:13px;">${p.direccion_entrega ?? '—'}</td>
+            <td class="td-muted" style="font-size:12px; font-style:italic;">${p.notas ?? '—'}</td>
+            <td>${estadoBadge[p.estado] ?? p.estado}</td>
+            <td>${accionBtn}</td>
+          </tr>`
+      }
+    }).join('')
+  }
+
+  // ── Filtros ───────────────────────────────────────
+
+  document.querySelectorAll('.filtro').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filtro').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      filtroActivo = btn.dataset.estado
+      renderTabla()
+    })
+  })
+
+  // ── Cambiar estado ────────────────────────────────
+
+  window.cambiarEstado = async (id, nuevoEstado) => {
+    const { error } = await supabase
+      .from('pedidos')
+      .update({ estado: nuevoEstado })
+      .eq('id', id)
+
+    if (error) { toast('Error al actualizar estado.', 'error'); return }
+
+    const msgs = {
+      pendiente: 'Pedido marcado como pendiente',
+      en_camino: '¡En camino! 🛵',
+      entregado: 'Pedido entregado ✓'
+    }
+    toast(msgs[nuevoEstado] ?? 'Estado actualizado', 'success')
+    await cargar()
+  }
+
+  // ── Modal: nuevo pedido ───────────────────────────
+
+  function abrirModal() {
+    document.getElementById('f-cliente').value   = ''
+    document.getElementById('f-direccion').value = ''
+    document.getElementById('f-notas').value     = ''
+    document.getElementById('modal-overlay').style.display = 'flex'
+    document.getElementById('f-cliente').focus()
+  }
+
+  function cerrarModal() {
+    document.getElementById('modal-overlay').style.display = 'none'
+  }
+
+  document.getElementById('btn-cerrar-modal').addEventListener('click', cerrarModal)
+  document.getElementById('btn-cancelar').addEventListener('click', cerrarModal)
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target.id === 'modal-overlay') cerrarModal()
+  })
+
+  function poblarSelectClientes() {
+    const sel = document.getElementById('f-cliente')
+    sel.innerHTML = '<option value="">Seleccioná un cliente...</option>' +
+      clientes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')
+  }
+
+  document.getElementById('btn-guardar').addEventListener('click', async () => {
+    const clienteId = document.getElementById('f-cliente').value
+    const direccion = document.getElementById('f-direccion').value.trim()
+    const notas     = document.getElementById('f-notas').value.trim()
+
+    if (!clienteId) { toast('Seleccioná un cliente.', 'error'); return }
+    if (!direccion) { toast('Ingresá la dirección de entrega.', 'error'); return }
+
+    const btn = document.getElementById('btn-guardar')
+    btn.textContent = 'Creando...'
+    btn.disabled = true
+
+    const { error } = await supabase.from('pedidos').insert({
+      cliente_id: clienteId,
+      direccion_entrega: direccion,
+      notas: notas || null,
+      estado: 'pendiente'
+    })
+
+    btn.textContent = 'Crear pedido'
+    btn.disabled = false
+
+    if (error) { toast('Error al crear el pedido.', 'error'); return }
+    toast('Pedido creado ✓', 'success')
+    cerrarModal()
+    await cargar()
+  })
+
+  // ── Eliminar ──────────────────────────────────────
+
+  window.eliminarPedido = async (id) => {
+    if (!await confirmar('¿Eliminar este pedido?', '¿Eliminar pedido?')) return
+    const { error } = await supabase.from('pedidos').delete().eq('id', id)
+    if (error) { toast('Error al eliminar.', 'error'); return }
+    toast('Pedido eliminado')
+    await cargar()
+  }
+
+  await cargar()
+</script>
+
+</body>
+</html>

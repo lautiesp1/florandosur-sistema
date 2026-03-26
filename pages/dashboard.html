@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlorandoSur — Dashboard</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body>
+
+<div class="app-shell">
+  <!-- Sidebar se inyecta por JS -->
+
+  <div style="display:flex; flex-direction:column; overflow:hidden;">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <span class="page-title">Dashboard</span>
+      <div class="topbar-actions">
+        <span id="fecha-hoy" style="font-size:13px; color:var(--text-muted);"></span>
+      </div>
+    </header>
+
+    <!-- Contenido -->
+    <main class="main-content">
+
+      <!-- Stats grid -->
+      <div class="stats-grid">
+        <div class="stat-card stat-accent fade-up fade-up-1">
+          <div class="stat-label">Ventas hoy</div>
+          <div class="stat-value" id="stat-ventas-hoy">—</div>
+          <div class="stat-sub" id="stat-ventas-hoy-sub">Cargando...</div>
+        </div>
+        <div class="stat-card fade-up fade-up-2">
+          <div class="stat-label">Pedidos pendientes</div>
+          <div class="stat-value" id="stat-pedidos">—</div>
+          <div class="stat-sub">Para entregar</div>
+        </div>
+        <div class="stat-card fade-up fade-up-3">
+          <div class="stat-label">Productos en stock</div>
+          <div class="stat-value" id="stat-productos">—</div>
+          <div class="stat-sub" id="stat-stock-alerta" style="color:var(--warning)"></div>
+        </div>
+        <div class="stat-card fade-up fade-up-4">
+          <div class="stat-label">Clientes activos</div>
+          <div class="stat-value" id="stat-clientes">—</div>
+          <div class="stat-sub">En base de datos</div>
+        </div>
+      </div>
+
+      <!-- Dos columnas -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;" class="fade-up fade-up-5 dashboard-grid">
+
+        <!-- Últimas ventas -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Últimas ventas</span>
+            <a href="ventas.html" class="btn btn-ghost btn-sm">Ver todas</a>
+          </div>
+          <div id="ultimas-ventas">
+            <div style="padding:20px 24px; color:var(--text-muted); font-size:13px;">Cargando...</div>
+          </div>
+        </div>
+
+        <!-- Pedidos en curso -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Pedidos activos</span>
+            <a href="pedidos.html" class="btn btn-ghost btn-sm">Ver todos</a>
+          </div>
+          <div id="pedidos-activos">
+            <div style="padding:20px 24px; color:var(--text-muted); font-size:13px;">Cargando...</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Alertas de stock -->
+      <div id="alertas-stock-section" style="margin-top:20px; display:none;" class="fade-up">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title" style="color:var(--warning);">⚠ Productos con stock bajo</span>
+            <a href="inventario.html" class="btn btn-ghost btn-sm">Gestionar</a>
+          </div>
+          <div id="alertas-stock-lista"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script type="module">
+  import { supabase, requiereAuth, getRol } from '../js/supabase.js'
+  import { renderSidebar } from '../js/sidebar.js'
+
+  const user = await requiereAuth()
+  const rol = await getRol()
+  
+  if (rol !== 'admin') window.location.href = 'pedidos.html'
+
+  renderSidebar('dashboard', user)
+
+  // Fecha de hoy
+  const hoy = new Date()
+  document.getElementById('fecha-hoy').textContent =
+    hoy.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' })
+
+  const hoyISO = hoy.toISOString().split('T')[0]
+
+  // ── Cargar stats ──────────────────────────────────
+
+  // Ventas de hoy
+  const { data: ventasHoy } = await supabase
+    .from('ventas')
+    .select('total')
+    .gte('created_at', `${hoyISO}T00:00:00`)
+    .lte('created_at', `${hoyISO}T23:59:59`)
+
+  const totalHoy = ventasHoy?.reduce((s, v) => s + Number(v.total), 0) ?? 0
+  document.getElementById('stat-ventas-hoy').textContent =
+    '$' + totalHoy.toLocaleString('es-AR')
+  document.getElementById('stat-ventas-hoy-sub').textContent =
+    `${ventasHoy?.length ?? 0} transacciones hoy`
+
+  // Pedidos pendientes / en camino
+  const { data: pedidosPendientes } = await supabase
+    .from('pedidos')
+    .select('id')
+    .in('estado', ['pendiente','en_camino'])
+
+  document.getElementById('stat-pedidos').textContent = pedidosPendientes?.length ?? 0
+
+  // Productos
+  const { data: productos } = await supabase
+    .from('productos')
+    .select('id, stock')
+
+  document.getElementById('stat-productos').textContent = productos?.length ?? 0
+
+  const conStockBajo = productos?.filter(p => p.stock <= 3) ?? []
+  if (conStockBajo.length > 0) {
+    document.getElementById('stat-stock-alerta').textContent =
+      `⚠ ${conStockBajo.length} con stock bajo`
+  }
+
+  // Clientes
+  const { count: totalClientes } = await supabase
+    .from('clientes')
+    .select('id', { count: 'exact', head: true })
+
+  document.getElementById('stat-clientes').textContent = totalClientes ?? 0
+
+  // ── Últimas ventas ────────────────────────────────
+
+  const { data: ultimasVentas } = await supabase
+    .from('ventas')
+    .select('id, total, metodo_pago, created_at, clientes(nombre)')
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  const contenedorVentas = document.getElementById('ultimas-ventas')
+
+  if (!ultimasVentas || ultimasVentas.length === 0) {
+    contenedorVentas.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">💰</div>
+        <div class="empty-state-title">Sin ventas aún</div>
+        <div class="empty-state-sub">Las ventas registradas aparecerán aquí.</div>
+      </div>`
+  } else {
+    contenedorVentas.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Total</th>
+            <th>Método</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${ultimasVentas.map(v => `
+            <tr>
+              <td>${v.clientes?.nombre ?? 'Sin cliente'}</td>
+              <td style="font-weight:500">$${Number(v.total).toLocaleString('es-AR')}</td>
+              <td class="td-muted">${v.metodo_pago ?? '—'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`
+  }
+
+  // ── Pedidos activos ───────────────────────────────
+
+  const { data: pedidosActivos } = await supabase
+    .from('pedidos')
+    .select('id, estado, direccion_entrega, clientes(nombre)')
+    .in('estado', ['pendiente','en_camino'])
+    .order('created_at', { ascending: true })
+    .limit(5)
+
+  const contenedorPedidos = document.getElementById('pedidos-activos')
+
+  const estadoBadge = {
+    pendiente: '<span class="badge badge-yellow">Pendiente</span>',
+    en_camino: '<span class="badge badge-green">En camino</span>',
+    entregado: '<span class="badge badge-gray">Entregado</span>',
+  }
+
+  if (!pedidosActivos || pedidosActivos.length === 0) {
+    contenedorPedidos.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📦</div>
+        <div class="empty-state-title">Sin pedidos activos</div>
+        <div class="empty-state-sub">Los pedidos pendientes y en camino aparecerán aquí.</div>
+      </div>`
+  } else {
+    contenedorPedidos.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Estado</th>
+            <th>Dirección</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${pedidosActivos.map(p => `
+            <tr>
+              <td>${p.clientes?.nombre ?? '—'}</td>
+              <td>${estadoBadge[p.estado] ?? p.estado}</td>
+              <td class="td-muted" style="max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.direccion_entrega ?? '—'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`
+  }
+
+  // ── Alertas de stock bajo ─────────────────────────
+
+  const { data: productosStockBajo } = await supabase
+    .from('productos')
+    .select('nombre, stock')
+    .lte('stock', 3)
+    .order('stock')
+
+  if (productosStockBajo && productosStockBajo.length > 0) {
+    document.getElementById('alertas-stock-section').style.display = 'block'
+    document.getElementById('alertas-stock-lista').innerHTML = `
+      <table>
+        <thead>
+          <tr><th>Producto</th><th>Stock actual</th></tr>
+        </thead>
+        <tbody>
+          ${productosStockBajo.map(p => `
+            <tr>
+              <td>${p.nombre}</td>
+              <td>
+                <span class="badge ${p.stock === 0 ? 'badge-red' : 'badge-yellow'}">
+                  ${p.stock} unidades
+                </span>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`
+  }
+
+</script>
+
+</body>
+</html>

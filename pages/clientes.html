@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlorandoSur — Clientes</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body>
+
+<div class="app-shell">
+
+  <div style="display:flex; flex-direction:column; overflow:hidden;">
+
+    <header class="topbar">
+      <span class="page-title">Clientes</span>
+      <div class="topbar-actions">
+        <div class="search-box">
+          <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input id="search" type="text" class="form-control" placeholder="Buscar cliente..." style="padding-left:34px; width:220px;" />
+        </div>
+        <button class="btn btn-primary" id="btn-nuevo">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nuevo cliente
+        </button>
+      </div>
+    </header>
+
+    <main class="main-content fade-up">
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Teléfono</th>
+              <th>Dirección</th>
+              <th>Cliente desde</th>
+              <th style="width:80px;"></th>
+            </tr>
+          </thead>
+          <tbody id="tabla-body">
+            <tr><td colspan="5" style="text-align:center; padding:32px; color:var(--text-muted);">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Modal -->
+<div id="modal-overlay" class="modal-overlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-titulo">Nuevo cliente</span>
+      <button class="btn-icon" id="btn-cerrar-modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cliente-id" />
+      <div class="form-group">
+        <label class="form-label">Nombre completo *</label>
+        <input id="f-nombre" class="form-control" type="text" placeholder="Ej: Martín García" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Teléfono / WhatsApp</label>
+        <input id="f-telefono" class="form-control" type="tel" placeholder="Ej: 351 234-5678" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Dirección</label>
+        <input id="f-direccion" class="form-control" type="text" placeholder="Ej: Av. Colón 1234, Córdoba" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notas internas</label>
+        <input id="f-notas" class="form-control" type="text" placeholder="Ej: Cliente frecuente, paga siempre con efectivo" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancelar">Cancelar</button>
+      <button class="btn btn-primary" id="btn-guardar">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: historial de compras -->
+<div id="modal-historial" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <span class="modal-title" id="historial-titulo">Historial de compras</span>
+      <button class="btn-icon" id="btn-cerrar-historial">✕</button>
+    </div>
+    <div class="modal-body" id="historial-body">
+      <div style="color:var(--text-muted); font-size:13px;">Cargando...</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script type="module">
+  import { supabase, requiereAuth, toast, confirmar } from '../js/supabase.js'
+  import { renderSidebar } from '../js/sidebar.js'
+
+  const user = await requiereAuth()
+  renderSidebar('clientes', user)
+
+  let clientes = []
+  let editandoId = null
+
+  // ── Cargar ────────────────────────────────────────
+
+  async function cargar() {
+    const { data, error } = await supabase
+      .from('clientes')
+      .select('*')
+      .order('nombre')
+
+    if (error) { toast('Error al cargar clientes', 'error'); return }
+    clientes = data
+    renderTabla(clientes)
+  }
+
+  function renderTabla(lista) {
+    const tbody = document.getElementById('tabla-body')
+    if (!lista || lista.length === 0) {
+      tbody.innerHTML = `
+        <tr><td colspan="5">
+          <div class="empty-state">
+            <div class="empty-state-icon">👤</div>
+            <div class="empty-state-title">Sin clientes registrados</div>
+            <div class="empty-state-sub">Agregá el primer cliente con el botón "Nuevo cliente".</div>
+          </div>
+        </td></tr>`
+      return
+    }
+
+    tbody.innerHTML = lista.map(c => {
+      const fecha = new Date(c.created_at).toLocaleDateString('es-AR', { day:'numeric', month:'short', year:'numeric' })
+      return `
+        <tr>
+          <td>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="
+                width:30px; height:30px; border-radius:50%; flex-shrink:0;
+                background:var(--accent-light); color:var(--accent);
+                display:flex; align-items:center; justify-content:center;
+                font-size:12px; font-weight:500;
+              ">${c.nombre.slice(0,2).toUpperCase()}</div>
+              <div>
+                <div style="font-weight:500">${c.nombre}</div>
+                ${c.notas ? `<div style="font-size:12px; color:var(--text-muted);">${c.notas}</div>` : ''}
+              </div>
+            </div>
+          </td>
+          <td class="td-muted">${c.telefono || '—'}</td>
+          <td class="td-muted" style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.direccion || '—'}</td>
+          <td class="td-muted">${fecha}</td>
+          <td>
+            <div style="display:flex; gap:4px; justify-content:flex-end;">
+              <button class="btn-icon" title="Ver historial" onclick="verHistorial('${c.id}', '${c.nombre.replace(/'/g,"\\'")}')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </button>
+              <button class="btn-icon" title="Editar" onclick="editarCliente('${c.id}')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="eliminarCliente('${c.id}', '${c.nombre.replace(/'/g,"\\'")}')">Eliminar</button>
+            </div>
+          </td>
+        </tr>`
+    }).join('')
+  }
+
+  // ── Búsqueda ──────────────────────────────────────
+
+  document.getElementById('search').addEventListener('input', e => {
+    const q = e.target.value.toLowerCase()
+    renderTabla(clientes.filter(c =>
+      c.nombre.toLowerCase().includes(q) ||
+      (c.telefono ?? '').toLowerCase().includes(q) ||
+      (c.direccion ?? '').toLowerCase().includes(q)
+    ))
+  })
+
+  // ── Modal CRUD ────────────────────────────────────
+
+  document.getElementById('btn-nuevo').addEventListener('click', () => abrirModal(null))
+
+  function abrirModal(cliente) {
+    editandoId = cliente?.id ?? null
+    document.getElementById('modal-titulo').textContent = editandoId ? 'Editar cliente' : 'Nuevo cliente'
+    document.getElementById('f-nombre').value    = cliente?.nombre    ?? ''
+    document.getElementById('f-telefono').value  = cliente?.telefono  ?? ''
+    document.getElementById('f-direccion').value = cliente?.direccion ?? ''
+    document.getElementById('f-notas').value     = cliente?.notas     ?? ''
+    document.getElementById('modal-overlay').style.display = 'flex'
+    document.getElementById('f-nombre').focus()
+  }
+
+  function cerrarModal() {
+    document.getElementById('modal-overlay').style.display = 'none'
+    editandoId = null
+  }
+
+  document.getElementById('btn-cerrar-modal').addEventListener('click', cerrarModal)
+  document.getElementById('btn-cancelar').addEventListener('click', cerrarModal)
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target.id === 'modal-overlay') cerrarModal()
+  })
+
+  document.getElementById('btn-guardar').addEventListener('click', async () => {
+    const nombre    = document.getElementById('f-nombre').value.trim()
+    const telefono  = document.getElementById('f-telefono').value.trim()
+    const direccion = document.getElementById('f-direccion').value.trim()
+    const notas     = document.getElementById('f-notas').value.trim()
+
+    if (!nombre) { toast('El nombre es obligatorio.', 'error'); return }
+
+    const btn = document.getElementById('btn-guardar')
+    btn.textContent = 'Guardando...'
+    btn.disabled = true
+
+    const datos = {
+      nombre,
+      telefono: telefono || null,
+      direccion: direccion || null,
+      notas: notas || null
+    }
+
+    let error
+    if (editandoId) {
+      ;({ error } = await supabase.from('clientes').update(datos).eq('id', editandoId))
+    } else {
+      ;({ error } = await supabase.from('clientes').insert(datos))
+    }
+
+    btn.textContent = 'Guardar'
+    btn.disabled = false
+
+    if (error) { toast('Error al guardar.', 'error'); return }
+    toast(editandoId ? 'Cliente actualizado ✓' : 'Cliente agregado ✓', 'success')
+    cerrarModal()
+    await cargar()
+  })
+
+  // ── Historial de compras ──────────────────────────
+
+  window.verHistorial = async (clienteId, nombre) => {
+    document.getElementById('historial-titulo').textContent = `Historial — ${nombre}`
+    document.getElementById('historial-body').innerHTML = '<div style="color:var(--text-muted); font-size:13px;">Cargando...</div>'
+    document.getElementById('modal-historial').style.display = 'flex'
+
+    const { data: ventas } = await supabase
+      .from('ventas')
+      .select('id, total, metodo_pago, created_at, detalle_ventas(cantidad, precio_unitario, productos(nombre))')
+      .eq('cliente_id', clienteId)
+      .order('created_at', { ascending: false })
+
+    const body = document.getElementById('historial-body')
+
+    if (!ventas || ventas.length === 0) {
+      body.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">🧾</div>
+          <div class="empty-state-title">Sin compras registradas</div>
+        </div>`
+      return
+    }
+
+    const totalGastado = ventas.reduce((s, v) => s + Number(v.total), 0)
+
+    body.innerHTML = `
+      <div style="display:flex; gap:16px; margin-bottom:20px;">
+        <div class="stat-card" style="flex:1; padding:14px 16px;">
+          <div class="stat-label">Total compras</div>
+          <div class="stat-value" style="font-size:20px;">${ventas.length}</div>
+        </div>
+        <div class="stat-card stat-accent" style="flex:1; padding:14px 16px;">
+          <div class="stat-label">Total gastado</div>
+          <div class="stat-value" style="font-size:20px;">$${totalGastado.toLocaleString('es-AR')}</div>
+        </div>
+      </div>
+      ${ventas.map(v => {
+        const fecha = new Date(v.created_at).toLocaleDateString('es-AR', {day:'numeric',month:'short',year:'numeric'})
+        const items = v.detalle_ventas?.map(d =>
+          `<div style="font-size:12px; color:var(--text-muted);">• ${d.productos?.nombre} × ${d.cantidad}</div>`
+        ).join('') ?? ''
+        return `
+          <div style="border:1px solid var(--border); border-radius:var(--radius); padding:14px; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span style="font-size:13px; color:var(--text-muted);">${fecha}</span>
+              <span style="font-weight:500; font-size:14px;">$${Number(v.total).toLocaleString('es-AR')}</span>
+            </div>
+            ${items}
+            <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">${v.metodo_pago ?? 'Sin método registrado'}</div>
+          </div>`
+      }).join('')}`
+  }
+
+  document.getElementById('btn-cerrar-historial').addEventListener('click', () => {
+    document.getElementById('modal-historial').style.display = 'none'
+  })
+
+  // ── Globals ───────────────────────────────────────
+
+  window.editarCliente = (id) => {
+    const c = clientes.find(x => x.id === id)
+    if (c) abrirModal(c)
+  }
+
+  window.eliminarCliente = async (id, nombre) => {
+    if (!await confirmar(`¿Eliminar a "${nombre}"?`, '¿Eliminar cliente?')) return
+    const { error } = await supabase.from('clientes').delete().eq('id', id)
+    if (error) { toast('Error al eliminar.', 'error'); return }
+    toast('Cliente eliminado')
+    await cargar()
+  }
+
+  await cargar()
+</script>
+
+</body>
+</html>

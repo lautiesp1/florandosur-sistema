@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlorandoSur — Ventas</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body>
+
+<div class="app-shell">
+
+  <div style="display:flex; flex-direction:column; overflow:hidden;">
+
+    <header class="topbar">
+      <span class="page-title">Ventas</span>
+      <div class="topbar-actions">
+        <button class="btn btn-primary" id="btn-nueva-venta">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nueva venta
+        </button>
+      </div>
+    </header>
+
+    <main class="main-content fade-up">
+
+      <!-- Stats rápidas -->
+      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:24px;">
+        <div class="stat-card stat-accent">
+          <div class="stat-label">Ventas hoy</div>
+          <div class="stat-value" id="stat-hoy">$0</div>
+          <div class="stat-sub" id="stat-hoy-count">0 transacciones</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Ventas este mes</div>
+          <div class="stat-value" id="stat-mes">$0</div>
+          <div class="stat-sub" id="stat-mes-count">0 transacciones</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total histórico</div>
+          <div class="stat-value" id="stat-total">$0</div>
+          <div class="stat-sub" id="stat-total-count">0 transacciones</div>
+        </div>
+      </div>
+
+      <!-- Tabla de ventas -->
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Cliente</th>
+              <th>Productos</th>
+              <th>Método de pago</th>
+              <th style="text-align:right">Total</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-body">
+            <tr><td colspan="5" style="text-align:center; padding:32px; color:var(--text-muted);">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Modal: nueva venta -->
+<div id="modal-overlay" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:540px;">
+    <div class="modal-header">
+      <span class="modal-title">Nueva venta</span>
+      <button class="btn-icon" id="btn-cerrar-modal">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Cliente -->
+      <div class="form-group">
+        <label class="form-label">Cliente</label>
+        <select id="f-cliente" class="form-control">
+          <option value="">Sin cliente (venta directa)</option>
+        </select>
+      </div>
+
+      <!-- Productos -->
+      <div class="form-group">
+        <label class="form-label">Productos *</label>
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <select id="f-producto-select" class="form-control" style="flex:1;">
+            <option value="">Seleccionar producto...</option>
+          </select>
+          <input id="f-cantidad" type="number" class="form-control" min="1" value="1" style="width:80px;" placeholder="Cant." />
+          <button class="btn btn-ghost" id="btn-agregar-item">Agregar</button>
+        </div>
+
+        <!-- Lista de items -->
+        <div id="items-lista" style="border:1px solid var(--border); border-radius:var(--radius); min-height:60px; padding:8px;">
+          <div id="items-placeholder" style="color:var(--text-muted); font-size:13px; text-align:center; padding:12px;">
+            Agregá productos a la venta
+          </div>
+        </div>
+      </div>
+
+      <!-- Método de pago -->
+      <div class="form-group">
+        <label class="form-label">Método de pago *</label>
+        <select id="f-metodo" class="form-control">
+          <option value="">Seleccionar...</option>
+          <option value="Efectivo">Efectivo</option>
+          <option value="Transferencia">Transferencia</option>
+          <option value="Débito">Débito</option>
+          <option value="Crédito">Crédito</option>
+          <option value="MercadoPago">MercadoPago</option>
+        </select>
+      </div>
+
+      <!-- Total -->
+      <div style="background:var(--accent-light); border-radius:var(--radius); padding:14px 16px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:14px; color:var(--accent); font-weight:500;">Total</span>
+        <span id="total-display" style="font-size:22px; font-weight:300; font-family:var(--font-display); color:var(--accent);">$0</span>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancelar">Cancelar</button>
+      <button class="btn btn-primary" id="btn-guardar">Registrar venta</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script type="module">
+  import { supabase, requiereAuth, toast } from '../js/supabase.js'
+  import { renderSidebar } from '../js/sidebar.js'
+
+  const user = await requiereAuth()
+  renderSidebar('ventas', user)
+
+  let ventas = []
+  let productos = []
+  let clientes  = []
+  let itemsVenta = []  // { productoId, nombre, precio, cantidad }
+
+  // ── Cargar datos ──────────────────────────────────
+
+  async function cargar() {
+    const [{ data: v }, { data: p }, { data: c }] = await Promise.all([
+      supabase.from('ventas')
+        .select('id, total, metodo_pago, created_at, clientes(nombre), detalle_ventas(cantidad, productos(nombre))')
+        .order('created_at', { ascending: false }),
+      supabase.from('productos').select('id, nombre, precio, stock').order('nombre'),
+      supabase.from('clientes').select('id, nombre').order('nombre')
+    ])
+
+    ventas   = v ?? []
+    productos = p ?? []
+    clientes  = c ?? []
+
+    renderTabla()
+    renderStats()
+    poblarSelectProductos()
+    poblarSelectClientes()
+  }
+
+  function renderStats() {
+    const hoy = new Date().toISOString().split('T')[0]
+    const mes  = hoy.slice(0, 7)
+
+    const ventasHoy = ventas.filter(v => v.created_at.startsWith(hoy))
+    const ventasMes = ventas.filter(v => v.created_at.startsWith(mes))
+
+    const sum = (arr) => arr.reduce((s, v) => s + Number(v.total), 0)
+
+    document.getElementById('stat-hoy').textContent       = '$' + sum(ventasHoy).toLocaleString('es-AR')
+    document.getElementById('stat-hoy-count').textContent = `${ventasHoy.length} transacciones`
+    document.getElementById('stat-mes').textContent       = '$' + sum(ventasMes).toLocaleString('es-AR')
+    document.getElementById('stat-mes-count').textContent = `${ventasMes.length} transacciones`
+    document.getElementById('stat-total').textContent     = '$' + sum(ventas).toLocaleString('es-AR')
+    document.getElementById('stat-total-count').textContent = `${ventas.length} transacciones`
+  }
+
+  function renderTabla() {
+    const tbody = document.getElementById('tabla-body')
+    if (!ventas || ventas.length === 0) {
+      tbody.innerHTML = `
+        <tr><td colspan="5">
+          <div class="empty-state">
+            <div class="empty-state-icon">💰</div>
+            <div class="empty-state-title">Sin ventas registradas</div>
+            <div class="empty-state-sub">Las ventas aparecerán aquí.</div>
+          </div>
+        </td></tr>`
+      return
+    }
+
+    tbody.innerHTML = ventas.map(v => {
+      const fecha = new Date(v.created_at).toLocaleDateString('es-AR', {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'})
+      const items = v.detalle_ventas?.map(d => d.productos?.nombre).filter(Boolean).join(', ') || '—'
+      return `
+        <tr>
+          <td class="td-muted" style="white-space:nowrap;">${fecha}</td>
+          <td>${v.clientes?.nombre ?? '<span class="td-muted">Sin cliente</span>'}</td>
+          <td class="td-muted" style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px;">${items}</td>
+          <td class="td-muted">${v.metodo_pago ?? '—'}</td>
+          <td style="text-align:right; font-weight:500;">$${Number(v.total).toLocaleString('es-AR')}</td>
+        </tr>`
+    }).join('')
+  }
+
+  function poblarSelectProductos() {
+    const sel = document.getElementById('f-producto-select')
+    sel.innerHTML = '<option value="">Seleccionar producto...</option>' +
+      productos.map(p => `<option value="${p.id}" data-precio="${p.precio}" data-stock="${p.stock}">${p.nombre} — $${Number(p.precio).toLocaleString('es-AR')} (stock: ${p.stock})</option>`).join('')
+  }
+
+  function poblarSelectClientes() {
+    const sel = document.getElementById('f-cliente')
+    sel.innerHTML = '<option value="">Sin cliente (venta directa)</option>' +
+      clientes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')
+  }
+
+  // ── Modal ─────────────────────────────────────────
+
+  document.getElementById('btn-nueva-venta').addEventListener('click', () => {
+    itemsVenta = []
+    renderItems()
+    document.getElementById('modal-overlay').style.display = 'flex'
+  })
+
+  function cerrarModal() {
+    document.getElementById('modal-overlay').style.display = 'none'
+    itemsVenta = []
+  }
+
+  document.getElementById('btn-cerrar-modal').addEventListener('click', cerrarModal)
+  document.getElementById('btn-cancelar').addEventListener('click', cerrarModal)
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target.id === 'modal-overlay') cerrarModal()
+  })
+
+  // ── Agregar item a la venta ───────────────────────
+
+  document.getElementById('btn-agregar-item').addEventListener('click', () => {
+    const sel = document.getElementById('f-producto-select')
+    const opt = sel.selectedOptions[0]
+    const cantidad = parseInt(document.getElementById('f-cantidad').value)
+
+    if (!opt.value) { toast('Seleccioná un producto.', 'error'); return }
+    if (!cantidad || cantidad < 1) { toast('Ingresá una cantidad válida.', 'error'); return }
+
+    const stock = parseInt(opt.dataset.stock)
+    const precio = parseFloat(opt.dataset.precio)
+    const productoId = opt.value
+    const nombre = opt.text.split(' — ')[0]
+
+    const yaEnLista = itemsVenta.find(i => i.productoId === productoId)
+    const cantidadTotal = (yaEnLista?.cantidad ?? 0) + cantidad
+
+    if (cantidadTotal > stock) {
+      toast(`Stock insuficiente. Disponible: ${stock}`, 'error')
+      return
+    }
+
+    if (yaEnLista) {
+      yaEnLista.cantidad = cantidadTotal
+    } else {
+      itemsVenta.push({ productoId, nombre, precio, cantidad })
+    }
+
+    sel.value = ''
+    document.getElementById('f-cantidad').value = 1
+    renderItems()
+  })
+
+  function renderItems() {
+    const lista = document.getElementById('items-lista')
+    const placeholder = document.getElementById('items-placeholder')
+
+    if (itemsVenta.length === 0) {
+      placeholder.style.display = 'block'
+      lista.querySelectorAll('.item-row').forEach(el => el.remove())
+      actualizarTotal()
+      return
+    }
+
+    placeholder.style.display = 'none'
+    lista.querySelectorAll('.item-row').forEach(el => el.remove())
+
+    itemsVenta.forEach((item, idx) => {
+      const div = document.createElement('div')
+      div.className = 'item-row'
+      div.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:7px 4px; border-bottom:1px solid var(--border); font-size:13px;'
+      div.innerHTML = `
+        <span style="flex:1; font-weight:500;">${item.nombre}</span>
+        <span style="color:var(--text-muted); margin:0 12px;">×${item.cantidad}</span>
+        <span style="font-weight:500; min-width:80px; text-align:right;">$${(item.precio * item.cantidad).toLocaleString('es-AR')}</span>
+        <button onclick="quitarItem(${idx})" style="margin-left:10px; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:16px; line-height:1; padding:2px 6px;">&times;</button>
+      `
+      lista.appendChild(div)
+    })
+
+    actualizarTotal()
+  }
+
+  function actualizarTotal() {
+    const total = itemsVenta.reduce((s, i) => s + (i.precio * i.cantidad), 0)
+    document.getElementById('total-display').textContent = '$' + total.toLocaleString('es-AR')
+  }
+
+  window.quitarItem = (idx) => {
+    itemsVenta.splice(idx, 1)
+    renderItems()
+  }
+
+  // ── Guardar venta ─────────────────────────────────
+
+  document.getElementById('btn-guardar').addEventListener('click', async () => {
+    if (itemsVenta.length === 0) { toast('Agregá al menos un producto.', 'error'); return }
+
+    const metodo = document.getElementById('f-metodo').value
+    if (!metodo) { toast('Seleccioná el método de pago.', 'error'); return }
+
+    const clienteId = document.getElementById('f-cliente').value || null
+    const total = itemsVenta.reduce((s, i) => s + (i.precio * i.cantidad), 0)
+
+    const btn = document.getElementById('btn-guardar')
+    btn.textContent = 'Registrando...'
+    btn.disabled = true
+
+    // 1. Insertar venta
+    const { data: ventaData, error: ventaError } = await supabase
+      .from('ventas')
+      .insert({ cliente_id: clienteId, total, metodo_pago: metodo })
+      .select('id')
+      .single()
+
+    if (ventaError) {
+      toast('Error al registrar la venta.', 'error')
+      btn.textContent = 'Registrar venta'
+      btn.disabled = false
+      return
+    }
+
+    // 2. Insertar detalle
+    const detalles = itemsVenta.map(i => ({
+      venta_id: ventaData.id,
+      producto_id: i.productoId,
+      cantidad: i.cantidad,
+      precio_unitario: i.precio
+    }))
+
+    const { error: detalleError } = await supabase.from('detalle_ventas').insert(detalles)
+
+    // 3. Actualizar stock de cada producto
+    for (const item of itemsVenta) {
+      const prod = productos.find(p => p.id === item.productoId)
+      if (prod) {
+        await supabase.from('productos')
+          .update({ stock: prod.stock - item.cantidad })
+          .eq('id', item.productoId)
+      }
+    }
+
+    btn.textContent = 'Registrar venta'
+    btn.disabled = false
+
+    if (detalleError) {
+      toast('Venta registrada, pero hubo un error en el detalle.', 'error')
+    } else {
+      toast('Venta registrada ✓', 'success')
+    }
+
+    cerrarModal()
+    await cargar()
+  })
+
+  await cargar()
+</script>
+
+</body>
+</html>
