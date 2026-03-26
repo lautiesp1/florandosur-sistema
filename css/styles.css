@@ -861,32 +861,44 @@ select.form-control { cursor: pointer; }
   .topbar-actions {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
     flex: 1;
     min-width: 0;
+    justify-content: flex-end;
   }
-  
+
+  .topbar-actions .search-box {
+    flex: 1;
+    max-width: 180px;
+    min-width: 120px;
+  }
+
+  .topbar-actions .btn-primary {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
   .stats-grid {
     grid-template-columns: 1fr;
     gap: 12px;
     margin-bottom: 20px;
   }
-  
+
   .stat-card {
     padding: 16px 14px;
     border-radius: 10px;
   }
-  
+
   .stat-value {
     font-size: 22px;
     font-weight: 600;
   }
-  
+
   .stat-label {
     font-size: 11px;
     margin-top: 6px;
   }
-  
+
   .badge {
     padding: 4px 10px;
     font-size: 11px;
@@ -1192,9 +1204,13 @@ select.form-control { cursor: pointer; }
   .form-grid-2 {
     grid-template-columns: 1fr;
   }
-  
+
+  .search-box {
+    max-width: 200px;
+  }
+
   .search-box input {
-    width: 200px;
+    width: 100%;
   }
 }
 
@@ -1215,9 +1231,13 @@ select.form-control { cursor: pointer; }
   .form-grid-2 {
     grid-template-columns: 1fr 1fr;
   }
-  
+
+  .search-box {
+    max-width: 240px;
+  }
+
   .search-box input {
-    width: 220px;
+    width: 100%;
   }
 }
 
