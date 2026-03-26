@@ -98,6 +98,22 @@ body {
   letter-spacing: -0.3px;
 }
 
+.sidebar-logo img {
+  width: 80px !important;
+  height: 80px !important;
+}
+
+@media (max-width: 480px) {
+  .sidebar-logo img {
+    width: 100px !important;
+    height: 100px !important;
+  }
+
+  .sidebar-logo .wordmark {
+    font-size: 18px;
+  }
+}
+
 .sidebar-logo .tagline {
   font-size: 11px;
   color: var(--text-muted);
@@ -824,7 +840,7 @@ select.form-control { cursor: pointer; }
     justify-content: space-between;
     position: static;
     z-index: 50;
-    gap: 6px;
+    gap: 16px;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
   }

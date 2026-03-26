@@ -56,10 +56,10 @@ export async function renderSidebar(paginaActiva = '', user = null) {
   const sidebarHtml = `
     <aside class="sidebar">
       <div class="sidebar-logo">
-        <div style="width:80px; height:80px; display:flex; align-items:center; justify-content:center; margin-bottom:8px;">
+        <div style="width:100px; height:100px; display:flex; align-items:center; justify-content:center; margin-bottom:8px;">
           <img src="../logo.png" alt="FlorandoSur" style="width:100%; height:auto; object-fit:contain; filter: drop-shadow(0 2px 8px rgba(255,20,147,0.3));">
         </div>
-        <span class="wordmark" style="font-size:14px; letter-spacing:0.5px;">FlorandoSur</span>
+        <span class="wordmark" style="font-size:18px; letter-spacing:0.5px;">FlorandoSur</span>
         <span class="tagline" style="font-size:10px;">Gestión</span>
       </div>
       <nav class="sidebar-nav">
