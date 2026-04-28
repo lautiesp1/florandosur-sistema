@@ -18,7 +18,7 @@ const NAV_DELIVERY = [
   { section: 'Cuenta', links: [{ id: 'perfil', label: 'Mi Perfil', href: 'perfil.html', icon: iconPerfil() }] }
 ]
 
-async function renderSidebar() {
+export async function renderSidebar() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
