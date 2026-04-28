@@ -22,7 +22,7 @@
         id="email"
         type="email"
         class="form-control"
-        placeholder="tu@correo.com"
+        placeholder=""
         autocomplete="email"
       />
     </div>
@@ -33,7 +33,7 @@
         id="password"
         type="password"
         class="form-control"
-        placeholder="••••••••"
+        placeholder=""
         autocomplete="current-password"
       />
     </div>
@@ -49,15 +49,12 @@
       </label>
     </div>
 
-    <p style="text-align:center; margin-top:24px; font-size:13px; color:var(--text-muted);">
-      ¿No tienes cuenta? <a href="pages/signup.html" class="login-link" style="color:var(--accent);">Crear cuenta</a>
-    </p>
-
   </div>
 </div>
 
 <script type="module">
-  import { supabase } from './js/supabase.js'
+  import { supabase } from './js/supabase.js';
+
 
   const btnLogin = document.getElementById('btn-login')
   const emailInput = document.getElementById('email')

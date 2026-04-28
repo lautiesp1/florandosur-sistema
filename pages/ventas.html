@@ -15,6 +15,12 @@
     <header class="topbar">
       <span class="page-title">Ventas</span>
       <div class="topbar-actions">
+        <div style="display:flex; gap:8px; align-items:center;">
+          <label style="font-size:13px; color:var(--text-muted); white-space:nowrap;">Fecha:</label>
+          <input id="filter-fecha-desde" type="date" class="form-control" style="width:150px; padding:8px;" />
+          <button class="btn btn-ghost" id="btn-filtrar">Filtrar</button>
+          <button class="btn btn-ghost" id="btn-limpiar-filtro" title="Limpiar filtros">Limpiar</button>
+        </div>
         <button class="btn btn-primary" id="btn-nueva-venta">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Nueva venta
@@ -53,10 +59,11 @@
               <th>Productos</th>
               <th>Método de pago</th>
               <th style="text-align:right">Total</th>
+              <th style="width:100px;"></th>
             </tr>
           </thead>
           <tbody id="tabla-body">
-            <tr><td colspan="5" style="text-align:center; padding:32px; color:var(--text-muted);">Cargando...</td></tr>
+            <tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted);">Cargando...</td></tr>
           </tbody>
         </table>
       </div>
@@ -69,7 +76,7 @@
 <div id="modal-overlay" class="modal-overlay" style="display:none;">
   <div class="modal" style="max-width:540px;">
     <div class="modal-header">
-      <span class="modal-title">Nueva venta</span>
+      <span class="modal-title" id="modal-title">Nueva venta</span>
       <button class="btn-icon" id="btn-cerrar-modal">✕</button>
     </div>
     <div class="modal-body">
@@ -89,7 +96,7 @@
           <select id="f-producto-select" class="form-control" style="flex:1;">
             <option value="">Seleccionar producto...</option>
           </select>
-          <input id="f-cantidad" type="number" class="form-control" min="1" value="1" style="width:80px;" placeholder="Cant." />
+          <input id="f-cantidad" type="number" class="form-control" min="1" value="1" style="width:80px;" placeholder="" />
           <button class="btn btn-ghost" id="btn-agregar-item">Agregar</button>
         </div>
 
@@ -101,7 +108,6 @@
         </div>
       </div>
 
-      <!-- Método de pago -->
       <div class="form-group">
         <label class="form-label">Método de pago *</label>
         <select id="f-metodo" class="form-control">
@@ -114,10 +120,68 @@
         </select>
       </div>
 
-      <!-- Total -->
-      <div style="background:var(--accent-light); border-radius:var(--radius); padding:14px 16px; display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-size:14px; color:var(--accent); font-weight:500;">Total</span>
-        <span id="total-display" style="font-size:22px; font-weight:300; font-family:var(--font-display); color:var(--accent);">$0</span>
+      <div class="form-group" style="margin-top: 15px; padding: 12px; background: var(--accent-light); border-radius: var(--radius); border: 1px solid var(--accent);">
+        <label class="login-checkbox" style="cursor:pointer; display:flex; align-items:center; gap:10px; margin:0;">
+          <input type="checkbox" id="f-es-delivery" style="width:18px; height:18px; accent-color:var(--accent);" />
+          <span style="font-weight:500; color:var(--text-primary); font-size: 14px;">¿Es con envío?</span>
+        </label>
+        
+        <div id="extra-delivery-info" style="display:none; margin-top:12px; animation: fadeUp 0.2s ease;">
+           <label class="form-label" style="font-size:12px;">Confirmar dirección de entrega</label>
+           <input id="f-direccion-entrega-venta" type="text" class="form-control" placeholder="" style="font-size:13px;" />
+        </div>
+      </div>
+
+      <!-- Sistema de Descuentos -->
+      <div style="border:1px solid var(--border); border-radius:var(--radius); padding:12px; margin-bottom:16px; background:var(--accent-light);">
+        <div style="font-weight:500; margin-bottom:12px; color:var(--accent);">Descuentos</div>
+        
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label" style="font-size:12px;">Tipo de descuento</label>
+            <select id="f-tipo-descuento" class="form-control" style="font-size:13px;">
+              <option value="">Sin descuento</option>
+              <option value="porcentaje-10">Porcentaje 10%</option>
+              <option value="porcentaje-20">Porcentaje 20%</option>
+              <option value="porcentaje-30">Porcentaje 30%</option>
+              <option value="porcentaje-custom">Porcentaje personalizado (%)</option>
+              <option value="fijo">Monto fijo ($)</option>
+              <option value="promocion-2x3">Promoción 2x3</option>
+              <option value="promocion-3x4">Promoción 3x4</option>
+              <option value="promocion-custom">Otra promoción</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label" style="font-size:12px;">Valor personalizado</label>
+            <input id="f-valor-descuento" type="number" class="form-control" step="0.01" min="0" placeholder="" style="font-size:13px;" />
+          </div>
+        </div>
+
+        <div class="form-group" style="margin:0;">
+          <label class="form-label" style="font-size:12px;">Descripción de promoción (opcional)</label>
+          <input id="f-desc-promocion" type="text" class="form-control" placeholder="" style="font-size:13px;" />
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label class="form-label" style="font-size:12px;">Notas / Observaciones (opcional)</label>
+        <textarea id="f-notas" class="form-control" rows="2" placeholder="" style="font-size:13px; resize:vertical;"></textarea>
+      </div>
+
+      <!-- Total con descuentos -->
+      <div style="background:var(--bg); border-radius:var(--radius); padding:12px 16px; border:1px solid var(--border);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:13px; color:var(--text-muted);">Subtotal</span>
+          <span id="subtotal-display" style="font-weight:500;">$0</span>
+        </div>
+        <div id="descuento-row" style="display:none; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:13px; color:var(--text-muted);">Descuento</span>
+          <span id="descuento-display" style="font-weight:500; color:var(--accent);">-$0</span>
+        </div>
+        <div style="border-top:1px solid var(--border); padding-top:8px; display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:14px; color:var(--accent); font-weight:500;">Total final</span>
+          <span id="total-display" style="font-size:20px; font-weight:300; font-family:var(--font-display); color:var(--accent);">$0</span>
+        </div>
       </div>
 
     </div>
@@ -128,10 +192,23 @@
   </div>
 </div>
 
+<div id="modal-detalle-venta" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header">
+      <span class="modal-title">Detalle de Venta</span>
+      <button class="btn-icon" onclick="cerrarModalDetalleVenta()">✕</button>
+    </div>
+    <div class="modal-body" id="detalle-venta-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModalDetalleVenta()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-container" id="toast-container"></div>
 
 <script type="module">
-  import { supabase, requiereAuth, toast } from '../js/supabase.js'
+  import { supabase, requiereAuth, toast, confirmar } from '../js/supabase.js'
   import { renderSidebar } from '../js/sidebar.js'
 
   const user = await requiereAuth()
@@ -141,22 +218,44 @@
   let productos = []
   let clientes  = []
   let itemsVenta = []  // { productoId, nombre, precio, cantidad }
+  let editingVentaId = null
+  let ventasOriginal = []  // Para mantener copia de ventas sin filtrar
 
   // ── Cargar datos ──────────────────────────────────
 
   async function cargar() {
-    const [{ data: v }, { data: p }, { data: c }] = await Promise.all([
-      supabase.from('ventas')
-        .select('id, total, metodo_pago, created_at, clientes(nombre), detalle_ventas(cantidad, productos(nombre))')
-        .order('created_at', { ascending: false }),
-      supabase.from('productos').select('id, nombre, precio, stock').order('nombre'),
-      supabase.from('clientes').select('id, nombre').order('nombre')
-    ])
+    // 1. Cargar Clientes (Caché o Base de datos)
+    let c = JSON.parse(sessionStorage.getItem('cache_clientes'));
+    if (!c) {
+      const { data } = await supabase.from('clientes').select('id, nombre, direccion, telefono').order('nombre');
+      c = data || [];
+      sessionStorage.setItem('cache_clientes', JSON.stringify(c));
+    }
+    clientes = c;
 
-    ventas   = v ?? []
-    productos = p ?? []
-    clientes  = c ?? []
+    // 2. Cargar Productos (Caché o Base de datos)
+    let p = JSON.parse(sessionStorage.getItem('cache_productos'));
+    if (!p) {
+      const { data } = await supabase.from('productos').select('id, nombre, precio_venta, stock, unidad, imagen_url').order('nombre');
+      p = data || [];
+      sessionStorage.setItem('cache_productos', JSON.stringify(p));
+    }
+    productos = p;
 
+    // 3. Cargar Ventas (SIEMPRE fresco de Supabase)
+    const { data: v, error: errVentas } = await supabase.from('ventas')
+      .select('id, cliente_id, total, descuento, tipo_descuento, precio_final, metodo_pago, notas, es_delivery, direccion_entrega, created_at, clientes(nombre, telefono), detalle_ventas(producto_id, cantidad, precio_unitario, productos(nombre, precio_venta, imagen_url, stock, cantidad, unidad))')
+      .order('created_at', { ascending: false });
+
+    if (errVentas) {
+      console.error("Error al cargar las ventas desde Supabase:", errVentas);
+      toast('Error al cargar historial de ventas', 'error');
+    }
+
+    ventas = v ?? [];
+    ventasOriginal = [...ventas];
+
+    // 4. Dibujar la interfaz
     renderTabla()
     renderStats()
     poblarSelectProductos()
@@ -181,37 +280,47 @@
   }
 
   function renderTabla() {
-    const tbody = document.getElementById('tabla-body')
-    if (!ventas || ventas.length === 0) {
-      tbody.innerHTML = `
-        <tr><td colspan="5">
-          <div class="empty-state">
-            <div class="empty-state-icon">💰</div>
-            <div class="empty-state-title">Sin ventas registradas</div>
-            <div class="empty-state-sub">Las ventas aparecerán aquí.</div>
-          </div>
-        </td></tr>`
-      return
-    }
+  const tbody = document.getElementById('tabla-body');
+  // ... (código de validación de lista vacía) ...
+  tbody.innerHTML = ventas.map(v => {
+    const fecha = new Date(v.created_at).toLocaleDateString('es-AR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
 
-    tbody.innerHTML = ventas.map(v => {
-      const fecha = new Date(v.created_at).toLocaleDateString('es-AR', {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'})
-      const items = v.detalle_ventas?.map(d => d.productos?.nombre).filter(Boolean).join(', ') || '—'
-      return `
-        <tr>
-          <td class="td-muted" style="white-space:nowrap;">${fecha}</td>
-          <td>${v.clientes?.nombre ?? '<span class="td-muted">Sin cliente</span>'}</td>
-          <td class="td-muted" style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px;">${items}</td>
-          <td class="td-muted">${v.metodo_pago ?? '—'}</td>
-          <td style="text-align:right; font-weight:500;">$${Number(v.total).toLocaleString('es-AR')}</td>
-        </tr>`
-    }).join('')
-  }
+    // Link a WhatsApp con el número visible y en verde
+      const telefono = v.clientes?.telefono || '';
+      const telLimpio = telefono.replace(/\D/g, '');
+      const linkWA = telLimpio 
+        ? `<div style="margin-top:2px;"><a href="https://wa.me/54${telLimpio}" target="_blank" style="font-size:12px; color:#25D366; font-weight:600; text-decoration:none;">📱 ${telefono}</a></div>` 
+        : '';
+
+    const itemsBoton = `<button class="btn btn-ghost btn-sm" onclick="verDetalleVenta('${v.id}')" style="border-color:var(--accent); color:var(--accent);">👁️ Ver detalle</button>`;
+
+    return `
+      <tr>
+        <td class="td-muted" style="font-size:12px;">${fecha}</td>
+        <td>
+          <div style="font-weight:500;">${v.clientes?.nombre ?? 'Venta Directa'}</div>
+          ${linkWA}
+        </td>
+        <td>${itemsBoton}</td>
+        <td class="td-muted">${v.metodo_pago ?? '—'}</td>
+        <td style="text-align:right; font-weight:600;">$${Number(v.precio_final || v.total || 0).toLocaleString('es-AR')}</td>
+        <td onclick="event.stopPropagation();">
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn-icon" onclick="editarVenta('${v.id}')">✏️</button>
+            <button class="btn-icon" onclick="eliminarVenta('${v.id}')" style="color:var(--danger);">🗑️</button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
 
   function poblarSelectProductos() {
     const sel = document.getElementById('f-producto-select')
     sel.innerHTML = '<option value="">Seleccionar producto...</option>' +
-      productos.map(p => `<option value="${p.id}" data-precio="${p.precio}" data-stock="${p.stock}">${p.nombre} — $${Number(p.precio).toLocaleString('es-AR')} (stock: ${p.stock})</option>`).join('')
+      productos.map(p => {
+        const precioVenta = Number(p.precio_venta || p.precio || 0)
+        return `<option value="${p.id}" data-precio="${precioVenta}" data-stock="${p.stock}" data-unidad="${p.unidad || 'unidad'}">${p.nombre} — $${precioVenta.toLocaleString('es-AR')} (stock: ${p.stock})</option>`
+      }).join('')
   }
 
   function poblarSelectClientes() {
@@ -220,13 +329,54 @@
       clientes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')
   }
 
+  // ── Filtrado por fecha ────────────────────────────
+
+  document.getElementById('btn-filtrar').addEventListener('click', () => {
+    const fechaBuscada = document.getElementById('filter-fecha-desde').value
+    if (!fechaBuscada) {
+      toast('Seleccioná una fecha para filtrar', 'error')
+      return
+    }
+
+    // Filtramos para que la fecha coincida EXACTAMENTE (===)
+    ventas = ventasOriginal.filter(v => {
+      const fechaVentaLocal = new Date(v.created_at).toLocaleDateString('en-CA');
+      return fechaVentaLocal === fechaBuscada; // <-- El cambio está aquí
+    })
+
+    toast(`Mostrando ventas del ${fechaBuscada}`)
+    renderTabla()
+    renderStats()
+  })
+
+  document.getElementById('btn-limpiar-filtro').addEventListener('click', () => {
+    document.getElementById('filter-fecha-desde').value = ''
+    ventas = [...ventasOriginal]
+    toast('Filtros limpiados')
+    renderTabla()
+    renderStats()
+  })
+
   // ── Modal ─────────────────────────────────────────
 
   document.getElementById('btn-nueva-venta').addEventListener('click', () => {
-    itemsVenta = []
-    renderItems()
-    document.getElementById('modal-overlay').style.display = 'flex'
-  })
+  editingVentaId = null;
+  itemsVenta = [];
+  document.getElementById('modal-title').textContent = 'Nueva venta';
+  document.getElementById('f-cliente').value = '';
+  document.getElementById('f-metodo').value = '';
+  document.getElementById('f-tipo-descuento').value = '';
+  document.getElementById('f-valor-descuento').value = '';
+  document.getElementById('f-desc-promocion').value = '';
+  document.getElementById('f-notas').value = '';
+  
+  // --- AGREGAR ESTAS DOS LÍNEAS AQUÍ ---
+  document.getElementById('f-es-delivery').checked = false; // Limpia el checkbox
+  document.getElementById('extra-delivery-info').style.display = 'none'; // Oculta el campo de dirección
+  
+  renderItems();
+  document.getElementById('modal-overlay').style.display = 'flex';
+});
 
   function cerrarModal() {
     document.getElementById('modal-overlay').style.display = 'none'
@@ -303,18 +453,129 @@
     actualizarTotal()
   }
 
-  function actualizarTotal() {
-    const total = itemsVenta.reduce((s, i) => s + (i.precio * i.cantidad), 0)
-    document.getElementById('total-display').textContent = '$' + total.toLocaleString('es-AR')
+  // ── Función centralizada para calcular descuentos y promociones ─
+  function calcularDescuento(tipoDescuento, valorDescuento, subtotal, metodo = '', items = []) {
+    let descuento = 0
+    const val = parseFloat(valorDescuento) || 0
+    
+    if (tipoDescuento === 'porcentaje-10') descuento = subtotal * 0.10
+    else if (tipoDescuento === 'porcentaje-20') descuento = subtotal * 0.20
+    else if (tipoDescuento === 'porcentaje-30') descuento = subtotal * 0.30
+    else if (tipoDescuento === 'porcentaje-custom') descuento = subtotal * (val / 100)
+    else if (tipoDescuento === 'fijo') descuento = val
+    // ✅ Automatización 2x3 (Llevas 3, pagas 2 -> 1 gratis por cada 3)
+    else if (tipoDescuento === 'promocion-2x3') {
+      descuento = items.reduce((acc, item) => acc + (Math.floor(item.cantidad / 3) * item.precio), 0)
+    }
+    // ✅ Automatización 3x4 (Llevas 4, pagas 3 -> 1 gratis por cada 4)
+    else if (tipoDescuento === 'promocion-3x4') {
+      descuento = items.reduce((acc, item) => acc + (Math.floor(item.cantidad / 4) * item.precio), 0)
+    }
+    else if (tipoDescuento === 'promocion-custom') {
+      descuento = val < 1 ? subtotal * val : val
+    } 
+    else if (!tipoDescuento && metodo === 'Efectivo') {
+      descuento = subtotal * 0.10
+    }
+    
+    return descuento
   }
+
+  function actualizarTotal() {
+    const subtotal = itemsVenta.reduce((s, i) => s + (i.precio * i.cantidad), 0)
+    const tipoDescuento = document.getElementById('f-tipo-descuento').value
+    const valorDescuento = document.getElementById('f-valor-descuento').value
+    const metodo = document.getElementById('f-metodo').value
+
+    let descuento = 0;
+    let textoExplicativo = '';
+    const val = parseFloat(valorDescuento) || 0;
+    
+    // Calculamos el descuento y generamos el texto para que quede súper claro
+    if (tipoDescuento === 'porcentaje-10') { descuento = subtotal * 0.10; textoExplicativo = 'Descuento del 10% en el total'; }
+    else if (tipoDescuento === 'porcentaje-20') { descuento = subtotal * 0.20; textoExplicativo = 'Descuento del 20% en el total'; }
+    else if (tipoDescuento === 'porcentaje-30') { descuento = subtotal * 0.30; textoExplicativo = 'Descuento del 30% en el total'; }
+    else if (tipoDescuento === 'porcentaje-custom') { descuento = subtotal * (val / 100); textoExplicativo = `Descuento personalizado del ${val}%`; }
+    else if (tipoDescuento === 'fijo') { descuento = val; textoExplicativo = `Rebaja directa de $${val}`; }
+    else if (tipoDescuento === 'promocion-2x3') {
+      let cantRegalados = 0;
+      descuento = itemsVenta.reduce((acc, item) => {
+        const regaladosEsteItem = Math.floor(item.cantidad / 3);
+        cantRegalados += regaladosEsteItem;
+        return acc + (regaladosEsteItem * item.precio);
+      }, 0);
+      textoExplicativo = `Promo 2x3 aplicada (Llevás ${cantRegalados} gratis)`;
+    }
+    else if (tipoDescuento === 'promocion-3x4') {
+      let cantRegalados = 0;
+      descuento = itemsVenta.reduce((acc, item) => {
+        const regaladosEsteItem = Math.floor(item.cantidad / 4);
+        cantRegalados += regaladosEsteItem;
+        return acc + (regaladosEsteItem * item.precio);
+      }, 0);
+      textoExplicativo = `Promo 3x4 aplicada (Llevás ${cantRegalados} gratis)`;
+    }
+    else if (tipoDescuento === 'promocion-custom') {
+      descuento = val < 1 ? subtotal * val : val;
+      textoExplicativo = 'Promoción especial aplicada';
+    } 
+    else if (!tipoDescuento && metodo === 'Efectivo') {
+      descuento = subtotal * 0.10;
+      textoExplicativo = '10% OFF por pago en Efectivo';
+    }
+
+    const totalFinal = Math.max(0, subtotal - descuento)
+
+    document.getElementById('subtotal-display').textContent = '$' + subtotal.toLocaleString('es-AR')
+    
+    const descRow = document.getElementById('descuento-row');
+    
+    // Si hay descuento, mostramos la info en detalle
+    if (descuento > 0) {
+      descRow.style.display = 'flex'
+      descRow.innerHTML = `
+        <div style="display:flex; flex-direction:column; flex:1;">
+          <span style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:600; letter-spacing:0.5px;">Bonificación</span>
+          <span style="font-size:13px; color:var(--accent); font-weight:500;">${textoExplicativo}</span>
+        </div>
+        <span id="descuento-display" style="font-weight:700; color:var(--accent); font-size:16px;">-$${descuento.toLocaleString('es-AR', {minimumFractionDigits: 0})}</span>
+      `;
+    } else {
+      descRow.style.display = 'none'
+    }
+
+    document.getElementById('total-display').textContent = '$' + totalFinal.toLocaleString('es-AR')
+  }
+
+  // --- Event listener para checkbox delivery ───────
+  const checkboxDelivery = document.getElementById('f-es-delivery')
+  if (checkboxDelivery) {
+    checkboxDelivery.addEventListener('change', (e) => {
+      const infoDiv = document.getElementById('extra-delivery-info')
+      if (infoDiv) {
+        infoDiv.style.display = e.target.checked ? 'block' : 'none'
+        if (e.target.checked) {
+          const clienteId = document.getElementById('f-cliente').value
+          const cliente = clientes.find(c => c.id === clienteId)
+          if (cliente && cliente.direccion) {
+            const dirInput = document.getElementById('f-direccion-entrega-venta')
+            if (dirInput) dirInput.value = cliente.direccion
+          }
+        }
+      }
+    })
+  }
+
+  document.getElementById('f-tipo-descuento').addEventListener('change', actualizarTotal)
+  document.getElementById('f-valor-descuento').addEventListener('input', actualizarTotal)
+  document.getElementById('f-metodo').addEventListener('change', actualizarTotal)
 
   window.quitarItem = (idx) => {
     itemsVenta.splice(idx, 1)
     renderItems()
   }
 
-  // ── Guardar venta ─────────────────────────────────
-
+  // ── Guardar venta (nueva o editada) ───────────────
   document.getElementById('btn-guardar').addEventListener('click', async () => {
     if (itemsVenta.length === 0) { toast('Agregá al menos un producto.', 'error'); return }
 
@@ -322,60 +583,307 @@
     if (!metodo) { toast('Seleccioná el método de pago.', 'error'); return }
 
     const clienteId = document.getElementById('f-cliente').value || null
-    const total = itemsVenta.reduce((s, i) => s + (i.precio * i.cantidad), 0)
+    const tipoDescuento = document.getElementById('f-tipo-descuento').value
+    const valorDescuento = document.getElementById('f-valor-descuento').value
+
+    // ✅ PRIMERO calculamos el subtotal (Soluciona el ReferenceError)
+    const subtotal = itemsVenta.reduce((s, i) => s + (i.precio * i.cantidad), 0)
+    
+    // ✅ LUEGO calculamos el descuento
+    const descuentoAplicado = calcularDescuento(tipoDescuento, valorDescuento, subtotal, metodo, itemsVenta)
+    const precioFinalCalculado = Math.max(0, subtotal - descuentoAplicado)
 
     const btn = document.getElementById('btn-guardar')
-    btn.textContent = 'Registrando...'
+    btn.textContent = editingVentaId ? 'Actualizando...' : 'Registrando...'
     btn.disabled = true
 
-    // 1. Insertar venta
-    const { data: ventaData, error: ventaError } = await supabase
-      .from('ventas')
-      .insert({ cliente_id: clienteId, total, metodo_pago: metodo })
-      .select('id')
-      .single()
+    const esDelivery = document.getElementById('f-es-delivery')?.checked || false;
+    const dirEntrega = document.getElementById('f-direccion-entrega-venta')?.value?.trim() || null;
 
-    if (ventaError) {
-      toast('Error al registrar la venta.', 'error')
-      btn.textContent = 'Registrar venta'
-      btn.disabled = false
-      return
-    }
-
-    // 2. Insertar detalle
-    const detalles = itemsVenta.map(i => ({
-      venta_id: ventaData.id,
-      producto_id: i.productoId,
-      cantidad: i.cantidad,
-      precio_unitario: i.precio
-    }))
-
-    const { error: detalleError } = await supabase.from('detalle_ventas').insert(detalles)
-
-    // 3. Actualizar stock de cada producto
-    for (const item of itemsVenta) {
-      const prod = productos.find(p => p.id === item.productoId)
-      if (prod) {
-        await supabase.from('productos')
-          .update({ stock: prod.stock - item.cantidad })
-          .eq('id', item.productoId)
+    try {
+      const payloadVenta = {
+        cliente_id: clienteId,
+        total: subtotal,
+        descuento: descuentoAplicado,
+        tipo_descuento: tipoDescuento,
+        precio_final: precioFinalCalculado,
+        metodo_pago: metodo,
+        notas: document.getElementById('f-notas').value.trim(),
+        es_delivery: esDelivery,
+        direccion_entrega: esDelivery ? dirEntrega : null
       }
+
+      if (editingVentaId) {
+        // Actualizar venta existente
+        const { error: updateError } = await supabase.from('ventas').update(payloadVenta).eq('id', editingVentaId)
+        if (updateError) throw updateError
+
+        await supabase.from('detalle_ventas').delete().eq('venta_id', editingVentaId)
+        const detalles = itemsVenta.map(i => ({
+          venta_id: editingVentaId,
+          producto_id: i.productoId,
+          cantidad: i.cantidad,
+          precio_unitario: i.precio
+        }))
+        await supabase.from('detalle_ventas').insert(detalles)
+        toast('Venta actualizada ✓', 'success')
+      } else {
+        // Nueva venta
+        payloadVenta.usuario_id = user.id
+        const { data: ventaData, error: ventaError } = await supabase.from('ventas').insert(payloadVenta).select('id').single()
+        if (ventaError) throw ventaError
+
+        const detalles = itemsVenta.map(i => ({
+          venta_id: ventaData.id,
+          producto_id: i.productoId,
+          cantidad: i.cantidad,
+          precio_unitario: i.precio
+        }))
+        await supabase.from('detalle_ventas').insert(detalles)
+
+        // Actualizar stock
+        // Actualizar stock con forzado de números y control de errores
+        for (const item of itemsVenta) {
+          const prod = productos.find(p => p.id === item.productoId)
+          if (prod) {
+            // Aseguramos que ambos sean números reales para evitar errores matemáticos
+            const stockActual = Number(prod.stock || 0);
+            const cantidadVendida = Number(item.cantidad || 0);
+            const nuevoStock = stockActual - cantidadVendida;
+
+            const { error: stockError } = await supabase
+              .from('productos')
+              .update({ stock: nuevoStock })
+              .eq('id', item.productoId);
+
+            if (stockError) {
+              console.error(`🚨 Supabase bloqueó el descuento de stock de ${item.nombre}:`, stockError);
+              toast(`Error al descontar stock de ${item.nombre}. Revisa la consola.`, 'error');
+            }
+          }
+        }
+
+        // Delivery automático
+        if (document.getElementById('f-es-delivery')?.checked) {
+          const direccionVenta = document.getElementById('f-direccion-entrega-venta')?.value?.trim() || 'Verificar dirección'
+          
+          const productosParaPedido = itemsVenta.map(i => {
+            const prod = productos.find(p => p.id === i.productoId)
+            return {
+              id: i.productoId,
+              nombre: i.nombre,
+              precio: i.precio,
+              cantidadPedida: i.cantidad,
+              unidad: prod ? prod.unidad : 'unidad',
+              stock: prod ? prod.stock : 0,
+              imagen_url: prod ? prod.imagen_url : null
+            }
+          });
+
+          const notasPago = document.getElementById('f-notas').value.trim() || null;
+
+          const { error: pedidoError } = await supabase.from('pedidos').insert({
+            cliente_id: clienteId,
+            direccion_entrega: direccionVenta,
+            total: precioFinalCalculado,
+            descuento: descuentoAplicado,       // ✅ Guardamos el monto
+            tipo_descuento: tipoDescuento,      // ✅ Guardamos "promocion-2x3", etc.
+            productos_json: productosParaPedido,
+            estado: 'pendiente',
+            notas: notasPago,
+            metodo_pago: metodo
+          })
+          
+          if (pedidoError) toast('Venta registrada pero fallo crear pedido', 'error')
+        }
+        toast('Venta registrada ✓', 'success')
+      }
+      cerrarModal()
+      await cargar()
+    } catch (err) {
+      console.error('Error:', err)
+      toast('Error al procesar la venta', 'error')
+    } finally {
+      btn.textContent = editingVentaId ? 'Guardar' : 'Registrar venta'
+      btn.disabled = false
     }
-
-    btn.textContent = 'Registrar venta'
-    btn.disabled = false
-
-    if (detalleError) {
-      toast('Venta registrada, pero hubo un error en el detalle.', 'error')
-    } else {
-      toast('Venta registrada ✓', 'success')
-    }
-
-    cerrarModal()
-    await cargar()
   })
 
   await cargar()
+
+
+
+
+  // ── Editar / Eliminar (exponer globales) ──────────
+
+  window.editarVenta = async (id) => {
+    const venta = ventasOriginal.find(v => v.id === id)
+    if (!venta) return
+
+    editingVentaId = id
+    itemsVenta = []
+
+    // 1. Usamos los productos que ya descargamos, ¡es instantáneo y sin errores!
+    if (venta.detalle_ventas) {
+      itemsVenta = venta.detalle_ventas.map(d => ({
+        productoId: d.producto_id,
+        nombre: d.productos?.nombre,
+        precio: d.precio_unitario,
+        cantidad: d.cantidad
+      }))
+    }
+
+    // 2. Llenamos todos los campos del panel
+    document.querySelector('.modal-title').textContent = 'Editar venta'
+    document.getElementById('f-cliente').value = venta.cliente_id || ''
+    document.getElementById('f-metodo').value = venta.metodo_pago || ''
+    document.getElementById('f-tipo-descuento').value = venta.tipo_descuento || ''
+    
+    // 3. Calculamos el valor del descuento para mostrarlo correctamente
+    let valorDesc = '';
+    if (venta.descuento > 0) {
+      if (venta.tipo_descuento === 'porcentaje-custom') {
+        const subtotal = itemsVenta.reduce((s, i) => s + (i.precio * i.cantidad), 0);
+        valorDesc = subtotal > 0 ? (venta.descuento / (subtotal / 100)) : venta.descuento;
+      } else if (venta.tipo_descuento === 'fijo' || venta.tipo_descuento === 'promocion-custom') {
+        valorDesc = venta.descuento;
+      }
+    }
+    document.getElementById('f-valor-descuento').value = valorDesc;
+    
+    document.getElementById('f-notas').value = venta.notas || '';
+    document.getElementById('btn-guardar').textContent = 'Actualizar venta'
+    
+    // Restaurar estado del checkbox de envío
+    const chkDelivery = document.getElementById('f-es-delivery');
+    const infoDiv = document.getElementById('extra-delivery-info');
+    const inputDir = document.getElementById('f-direccion-entrega-venta');
+
+    if (chkDelivery) {
+      chkDelivery.checked = venta.es_delivery === true;
+      if (infoDiv) infoDiv.style.display = venta.es_delivery ? 'block' : 'none';
+      if (inputDir) inputDir.value = venta.direccion_entrega || '';
+    }
+
+    // 4. Dibujamos los productos y abrimos el panel
+    renderItems()
+    document.getElementById('modal-overlay').style.display = 'flex'
+  }
+
+
+  // ── Ver Detalle de Venta ──────────────────────────
+  window.verDetalleVenta = (id) => {
+    const venta = ventasOriginal.find(v => v.id === id);
+    if (!venta) return;
+
+    const body = document.getElementById('detalle-venta-body');
+    const fecha = new Date(venta.created_at).toLocaleDateString('es-AR', {day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'});
+    
+    // 👇 Validamos si la venta fue con envío para mostrar la dirección
+    const infoDireccion = venta.es_delivery ? ` | 📍 ${venta.direccion_entrega || 'Sin dirección registrada'}` : '';
+
+    let html = `
+      <div style="margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid var(--border);">
+        <div style="font-size:15px; font-weight:500; color:var(--text-primary); margin-bottom:4px;">👤 ${venta.clientes?.nombre || 'Venta Directa'}</div>
+        <div style="font-size:13px; color:var(--text-muted);">📅 ${fecha} | 💳 ${venta.metodo_pago || 'No especificado'}${infoDireccion}</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px;">`;
+    let subtotalCalculado = 0;
+
+    venta.detalle_ventas?.forEach(d => {
+      const precioUnitario = Number(d.precio_unitario || d.productos?.precio_venta || 0);
+      const subtotalItem = d.cantidad * precioUnitario;
+      subtotalCalculado += subtotalItem;
+      const prod = d.productos;
+      
+      const imagen = prod?.imagen_url 
+        ? `<img src="${prod.imagen_url}" style="width:48px; height:48px; object-fit:cover; border-radius:6px; border:1px solid var(--border);" />` 
+        : `<div style="width:48px; height:48px; background:var(--bg); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--text-muted); border:1px dashed var(--border);">Sin foto</div>`;
+
+      // Formateamos el contenido (ej: "60 ml" o "1 gr")
+      const contenidoStr = `${prod?.cantidad || ''} ${prod?.unidad || ''}`.trim();
+
+      html += `
+        <div style="display:flex; gap:12px; padding:12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);">
+          ${imagen}
+          <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+            <div style="font-weight:600; font-size:14px; color:var(--text-primary);">${prod?.nombre || 'Producto eliminado'}</div>
+            
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+              📦 Stock: <strong style="color:var(--text-primary);">${prod?.stock ?? '-'}</strong> | 📏 Cont: ${contenidoStr || '-'}
+            </div>
+            
+            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">$${precioUnitario.toLocaleString('es-AR')} c/u</div>
+          </div>
+          <div style="text-align:right; display:flex; flex-direction:column; justify-content:center;">
+            <div style="font-weight:700; color:var(--accent); font-size:14px;">x${d.cantidad}</div>
+            <div style="font-size:13px; font-weight:600; margin-top:4px;">$${subtotalItem.toLocaleString('es-AR')}</div>
+          </div>
+        </div>`;
+    });
+
+    // Si la venta tiene notas, mostramos el recuadro
+    if (venta.notas) {
+      html += `
+        <div style="margin-top:16px; padding:12px; background:var(--surface); border-left:3px solid #eab308; border-radius:4px;">
+          <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:4px;">📝 Notas de la venta</div>
+          <div style="font-size:13px; color:var(--text-primary); font-style:italic;">${venta.notas}</div>
+        </div>
+      `;
+    }
+
+    html += `</div>
+      <div style="margin-top:20px; padding:16px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:13px; color:var(--text-muted);">
+          <span>Subtotal de productos:</span>
+          <span style="font-weight:500;">$${subtotalCalculado.toLocaleString('es-AR')}</span>
+        </div>`;
+        
+    if (venta.descuento > 0) {
+      let textoPromo = '';
+      if (venta.tipo_descuento === 'promocion-2x3') textoPromo = '(Promo 2x3)';
+      else if (venta.tipo_descuento === 'promocion-3x4') textoPromo = '(Promo 3x4)';
+      else if (venta.tipo_descuento === 'porcentaje-10') textoPromo = '(10% OFF)';
+      else if (venta.tipo_descuento === 'porcentaje-20') textoPromo = '(20% OFF)';
+      else if (venta.tipo_descuento === 'porcentaje-30') textoPromo = '(30% OFF)';
+      else if (venta.tipo_descuento === 'porcentaje-custom') textoPromo = '(Descuento %)';
+      else if (venta.tipo_descuento === 'fijo') textoPromo = '(Monto fijo)';
+      else if (venta.tipo_descuento === 'promocion-custom') textoPromo = '(Promo especial)';
+      else if (!venta.tipo_descuento && venta.metodo_pago === 'Efectivo') textoPromo = '(10% por Efectivo)';
+
+      html += `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; font-size:13px; color:var(--accent);">
+          <span>Descuento / Promo <strong style="font-weight:700;">${textoPromo}</strong>:</span>
+          <span style="font-weight:600;">-$${Number(venta.descuento).toLocaleString('es-AR')}</span>
+        </div>`;
+    }
+
+    html += `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px dashed var(--border);">
+          <span style="font-size:15px; font-weight:600; color:var(--text-primary);">Total Final:</span>
+          <span style="font-size:24px; font-weight:800; color:var(--accent);">$${Number(venta.precio_final || venta.total || 0).toLocaleString('es-AR')}</span>
+        </div>
+      </div>`;
+
+    body.innerHTML = html;
+    document.getElementById('modal-detalle-venta').style.display = 'flex';
+  }
+
+  window.cerrarModalDetalleVenta = () => { document.getElementById('modal-detalle-venta').style.display = 'none'; }
+
+  window.eliminarVenta = async (id) => {
+    const confirmado = await confirmar('¿Eliminar esta venta? Esta acción no se puede deshacer.', 'Eliminar venta')
+    if (!confirmado) return
+
+    const { error } = await supabase.from('ventas').delete().eq('id', id)
+    if (error) {
+      toast('Error al eliminar la venta.', 'error')
+      return
+    }
+
+    toast('Venta eliminada', 'default')
+    await cargar()
+  }
 </script>
 
 </body>

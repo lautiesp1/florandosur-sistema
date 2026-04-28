@@ -9,7 +9,6 @@
 <body>
 
 <div class="app-shell">
-
   <div style="display:flex; flex-direction:column; overflow:hidden;">
 
     <header class="topbar">
@@ -17,7 +16,7 @@
       <div class="topbar-actions">
         <div class="search-box">
           <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input id="search" type="text" class="form-control" placeholder="Buscar producto..." style="padding-left:34px;" />
+          <input id="search" type="text" class="form-control" placeholder="" style="padding-left:34px;" />
         </div>
         <button class="btn btn-primary" id="btn-nuevo">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -27,8 +26,6 @@
     </header>
 
     <main class="main-content fade-up">
-
-      <!-- ALERTAS DE BAJO STOCK -->
       <div id="alertas-stock" style="margin-bottom:24px;"></div>
 
       <div class="table-wrapper">
@@ -43,18 +40,14 @@
             </tr>
           </thead>
           <tbody id="tabla-body">
-            <tr>
-              <td colspan="5" style="text-align:center; padding:32px; color:var(--text-muted);">Cargando...</td>
-            </tr>
+            <tr><td colspan="5" style="text-align:center; padding:32px; color:var(--text-muted);">Cargando...</td></tr>
           </tbody>
         </table>
       </div>
-
     </main>
   </div>
 </div>
 
-<!-- Modal: nuevo/editar producto -->
 <div id="modal-overlay" class="modal-overlay" style="display:none;">
   <div class="modal">
     <div class="modal-header">
@@ -66,62 +59,69 @@
       <div class="form-grid-2">
         <div class="form-group" style="grid-column:1/-1;">
           <label class="form-label">Nombre del producto *</label>
-          <input id="f-nombre" class="form-control" type="text" placeholder="Ej: Vaper Caliburn A2" />
+          <input id="f-nombre" class="form-control" type="text" />
         </div>
         <div class="form-group">
-          <label class="form-label">Precio ($) *</label>
-          <input id="f-precio" class="form-control" type="number" min="0" step="0.01" placeholder="0.00" />
+          <label class="form-label">Marca</label>
+          <input id="f-marca" class="form-control" type="text" />
         </div>
-        <div class="form-group">
-          <label class="form-label">Stock actual *</label>
-          <input id="f-stock" class="form-control" type="number" min="0" placeholder="0" />
-        </div>
-        <div class="form-group" style="grid-column:1/-1;">
+        <div class="form-group" style="margin-bottom: 16px;">
           <label class="form-label">Categoría</label>
-          <select id="f-categoria" class="form-control">
-            <option value="">Sin categoría</option>
+          <select id="f-categoria" class="form-control" onchange="toggleNuevaCategoria()">
+            <option value="">Seleccionar categoría...</option>
             <option value="vaporizadores">Vaporizadores</option>
+            <option value="Extractos">Extractos</option>
             <option value="liquidos">Líquidos</option>
             <option value="pods">Pods</option>
             <option value="accesorios">Accesorios</option>
-            <option value="resistencias">Resistencias</option>
-            <option value="baterias">Baterías</option>
-            <option value="otros">Otros</option>
+            <option value="NUEVA" style="font-weight:bold; color:var(--accent);">➕ Agregar nueva categoría...</option>
           </select>
+          <input type="text" id="f-nueva-categoria" class="form-control" style="display:none; margin-top:8px;" placeholder="">
         </div>
+        <div class="form-group">
+          <label class="form-label">Precio de Costo ($) *</label>
+          <input id="f-precio-costo" class="form-control" type="number" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio de Venta ($) *</label>
+          <input id="f-precio-venta" class="form-control" type="number" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stock actual *</label>
+          <input id="f-stock" class="form-control" type="number" />
+        </div>
+
+        <div class="form-group" style="grid-column: 1 / -1; background: var(--bg); padding: 16px; border-radius: 8px; border: 1px dashed var(--border); margin-top: 8px;">
+          <label class="form-label" style="color: var(--accent); font-weight:600;">Detalles de Contenido</label>
+          <div style="display: flex; gap: 12px;">
+            <input id="f-cantidad" class="form-control" type="number" step="0.1" placeholder="" style="flex: 2;" />
+            <select id="f-unidad" class="form-control" style="flex: 1;">
+              <option value="ml">ml</option>
+              <option value="gr">gr</option>
+              <option value="unidad">unidad</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Genética (separado por comas)</label>
+          <input id="f-genetica" class="form-control" type="text" placeholder="" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sabores (separado por comas)</label>
+          <input id="f-sabor" class="form-control" type="text" placeholder="" />
+        </div>
+
         <div class="form-group" style="grid-column:1/-1;">
           <label class="form-label">Descripción</label>
-          <input id="f-descripcion" class="form-control" type="text" placeholder="Descripción opcional" />
+          <input id="f-descripcion" class="form-control" type="text" />
         </div>
+
         <div class="form-group" style="grid-column:1/-1;">
           <label class="form-label">Imagen del producto</label>
-          <div style="
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-          ">
-            <input id="f-imagen" class="form-control" type="file" accept="image/*" />
-            <div id="imagen-preview" style="
-              display: none;
-              width: 100%;
-              height: 180px;
-              background: var(--bg-secondary);
-              border-radius: var(--radius-sm);
-              overflow: hidden;
-              border: 2px solid var(--border);
-            ">
-              <img id="imagen-preview-img" src="" alt="Preview" style="
-                width: 100%;
-                height: 100%;
-                object-fit: contain;
-                padding: 8px;
-              " />
-            </div>
-            <div id="imagen-info" style="
-              font-size: 12px;
-              color: var(--text-muted);
-              display: none;
-            "></div>
+          <input id="f-imagen" class="form-control" type="file" accept="image/*" />
+          <div id="imagen-preview" style="display:none; width:100%; height:180px; background:var(--bg-secondary); border-radius:8px; overflow:hidden; border:2px solid var(--border); margin-top:8px;">
+            <img id="imagen-preview-img" alt="Preview" style="width:100%; height:100%; object-fit:contain; padding:8px;" />
           </div>
         </div>
       </div>
@@ -136,283 +136,263 @@
 <div class="toast-container" id="toast-container"></div>
 
 <script type="module">
-  import { supabase, requiereAuth, getRol, toast } from '../js/supabase.js'
+  import { supabase, requiereAuth, toast, confirmar } from '../js/supabase.js'
   import { renderSidebar } from '../js/sidebar.js'
   import { procesarYSubirImagen } from '../js/imagen.js'
+  
 
   const user = await requiereAuth()
-  renderSidebar('inventario', user)
+  await renderSidebar('inventario', user)
 
-  let productos = []
-  let editandoId = null
-  let imagenSeleccionada = null
-
-  // ── Cargar productos ──────────────────────────────
+  let productos = [], editandoId = null, imagenSeleccionada = null
 
   async function cargar() {
+    // Cambiamos el ordenamiento de 'nombre' a 'created_at' (descendente)
     const { data, error } = await supabase
       .from('productos')
       .select('*')
-      .order('nombre')
+      .order('created_at', { ascending: false }) // 👈 Este es el cambio clave
 
     if (error) { toast('Error al cargar productos', 'error'); return }
     productos = data
     renderTabla(productos)
-    mostrarAlertasStock(productos)
+    
+    // Mantenemos la función que armamos antes para las categorías
+    actualizarSelectCategorias()
+  }
+
+  // 👇 ESTA ES LA FUNCIÓN NUEVA
+  function actualizarSelectCategorias() {
+    const select = document.getElementById('f-categoria');
+    if (!select) return;
+
+    // 1. Categorías base por si borras todos los productos
+    const base = ['Vaporizadores', 'Líquidos', 'Pods', 'Accesorios', 'Resistencias'];
+    
+    // 2. Juntamos las base con las que ya están en tu base de datos
+    const categoriasCrudas = [...base, ...productos.map(p => p.categoria).filter(Boolean)];
+    
+    // 3. Filtro inteligente para eliminar duplicados (ignora tildes y mayúsculas)
+    const mapaCategorias = new Map();
+    
+    categoriasCrudas.forEach(cat => {
+       // Convertimos "Líquidos" en "liquidos" solo para comparar si ya existe
+       const catNormalizada = cat.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+       
+       if (!mapaCategorias.has(catNormalizada)) {
+           // Si no existe, la guardamos con la primera letra en mayúscula para que se vea linda
+           const catLimpia = cat.trim();
+           const catCapitalizada = catLimpia.charAt(0).toUpperCase() + catLimpia.slice(1);
+           mapaCategorias.set(catNormalizada, catCapitalizada);
+       }
+    });
+
+    // 4. Ordenamos alfabéticamente
+    const todas = Array.from(mapaCategorias.values()).sort();
+
+    // 5. Reconstruimos el menú desplegable
+    let html = '<option value="">Sin categoría</option>';
+    todas.forEach(cat => {
+      html += `<option value="${cat}">${cat}</option>`;
+    });
+    
+    html += '<option value="NUEVA" style="font-weight:bold; color:var(--accent);">➕ Agregar nueva categoría...</option>';
+    select.innerHTML = html;
   }
 
   function renderTabla(lista) {
     const tbody = document.getElementById('tabla-body')
-    if (!lista || lista.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="5">
-            <div class="empty-state">
-              <div class="empty-state-icon">📦</div>
-              <div class="empty-state-title">Sin productos</div>
-              <div class="empty-state-sub">Agregá el primer producto con el botón "Nuevo producto".</div>
-            </div>
-          </td>
-        </tr>`
-      return
-    }
-
-    tbody.innerHTML = lista.map(p => {
-      let stockBadge
-      if (p.stock === 0)     stockBadge = `<span class="badge badge-red">Sin stock</span>`
-      else if (p.stock <= 3) stockBadge = `<span class="badge badge-yellow">${p.stock} un.</span>`
-      else                   stockBadge = `<span class="badge badge-green">${p.stock} un.</span>`
-
-      return `
-        <tr style="cursor: pointer; transition: background 0.2s;" onclick="irAlDetalle('${p.id}')" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''">
-          <td>
-            <div style="font-weight:500; line-height:1.3;">${p.nombre}</div>
-            ${p.descripcion ? `<div class="td-muted" style="font-size:12px; margin-top:2px;">${p.descripcion}</div>` : ''}
-          </td>
-          <td class="td-muted">${p.categoria || '—'}</td>
-          <td style="font-weight:500;">$${Number(p.precio).toLocaleString('es-AR')}</td>
-          <td>${stockBadge}</td>
-          <td onclick="event.stopPropagation();">
-            <div style="display:flex; gap:4px; justify-content:flex-end;">
-              <button class="btn-icon" title="Editar" onclick="editarProducto('${p.id}')">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
-              </button>
-              <button class="btn btn-danger btn-sm" onclick="eliminarProducto('${p.id}', '${p.nombre.replace(/'/g,"\\'")}')">Eliminar</button>
-            </div>
-          </td>
-        </tr>`
-    }).join('')
+    tbody.innerHTML = lista.map(p => `
+      <tr onclick="irAlDetalle('${p.id}')" style="cursor:pointer;">
+        <td><div style="font-weight:500;">${p.nombre}</div></td>
+        <td class="td-muted">${p.categoria || '—'}</td>
+        <td style="font-weight:500;">$${Number(p.precio_venta || 0).toLocaleString('es-AR')}</td>
+        <td><span class="badge ${p.stock <= 3 ? 'badge-yellow' : 'badge-green'}">${p.stock} un.</span></td>
+        <td onclick="event.stopPropagation();">
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn-icon" onclick="editarProducto('${p.id}')" title="Editar producto" style="font-size:16px;">✏️</button>
+            <button class="btn-icon" onclick="eliminarProducto('${p.id}')" title="Eliminar producto" style="font-size:16px; color:var(--danger);">🗑️</button>
+          </div>
+        </td>
+      </tr>`).join('')
   }
 
-  function mostrarAlertasStock(lista) {
-    const alertasDiv = document.getElementById('alertas-stock')
-    const productosConBajoStock = lista.filter(p => p.stock <= 3)
-    
-    if (productosConBajoStock.length === 0) {
-      alertasDiv.innerHTML = ''
-      return
-    }
+ 
 
-    const productosPorAlerta = productosConBajoStock.map(p => 
-      `<span style="font-weight:500;">${p.nombre}</span> (${p.stock} un.)`
-    ).join(' • ')
-
-    alertasDiv.innerHTML = `
-      <div style="
-        background: var(--warning-light);
-        border: 1px solid var(--warning);
-        border-radius: var(--radius-lg);
-        padding: 12px 16px;
-        display: flex;
-        align-items:center;
-        gap: 12px;
-        color: var(--text-primary);
-        font-size: 14px;
-      ">
-        <span style="font-size:20px;">⚠️</span>
-        <div>
-          <strong>Bajo stock detectado:</strong>
-          ${productosPorAlerta}
-        </div>
-      </div>
-    `
-  }
-
-  // ── Búsqueda ──────────────────────────────────────
-
-  document.getElementById('search').addEventListener('input', e => {
-    const q = e.target.value.toLowerCase()
-    const filtrados = productos.filter(p =>
-      p.nombre.toLowerCase().includes(q) ||
-      (p.categoria ?? '').toLowerCase().includes(q) ||
-      (p.descripcion ?? '').toLowerCase().includes(q)
-    )
-    renderTabla(filtrados)
-    mostrarAlertasStock(filtrados)
-  })
-
-  // ── Modal: abrir ──────────────────────────────────
-
-  document.getElementById('btn-nuevo').addEventListener('click', () => abrirModal(null))
-
-  function abrirModal(producto) {
-    editandoId = producto?.id ?? null
+  function abrirModal(p) {
+    editandoId = p?.id ?? null
     imagenSeleccionada = null
-    document.getElementById('modal-titulo').textContent =
-      editandoId ? 'Editar producto' : 'Nuevo producto'
-    document.getElementById('f-nombre').value      = producto?.nombre ?? ''
-    document.getElementById('f-precio').value      = producto?.precio ?? ''
-    document.getElementById('f-stock').value       = producto?.stock ?? ''
-    document.getElementById('f-categoria').value   = producto?.categoria ?? ''
-    document.getElementById('f-descripcion').value = producto?.descripcion ?? ''
-    document.getElementById('f-imagen').value      = ''
-    document.getElementById('imagen-preview').style.display = 'none'
-    document.getElementById('imagen-info').style.display = 'none'
+    document.getElementById('modal-titulo').textContent = editandoId ? 'Editar producto' : 'Nuevo producto'
+    
+    // Cargar todos los datos en el modal
+    document.getElementById('f-nombre').value = p?.nombre ?? ''
+    document.getElementById('f-marca').value = p?.marca ?? ''
+    document.getElementById('f-categoria').value = p?.categoria ?? ''
+    // 👇 Ocultamos el campo de nueva categoría al abrir el modal
+    document.getElementById('f-nueva-categoria').style.display = 'none'
+    document.getElementById('f-nueva-categoria').value = ''
+    document.getElementById('f-precio-costo').value = p?.precio_costo ?? ''
+    document.getElementById('f-precio-venta').value = p?.precio_venta ?? ''
+    document.getElementById('f-stock').value = p?.stock ?? ''
+    document.getElementById('f-cantidad').value = p?.cantidad ?? ''
+    document.getElementById('f-unidad').value = p?.unidad ?? 'ml'
+    document.getElementById('f-descripcion').value = p?.descripcion ?? ''
+    document.getElementById('f-genetica').value = p?.genetica ? p.genetica.join(', ') : ''
+    document.getElementById('f-sabor').value = p?.sabor ? p.sabor.join(', ') : ''
+    document.getElementById('f-imagen').value = '' // Limpiar el input file
+    
+    const preview = document.getElementById('imagen-preview')
+    const imgEl = document.getElementById('imagen-preview-img')
+    if (p?.imagen_url) { imgEl.src = p.imagen_url; preview.style.display = 'block' }
+    else { preview.style.display = 'none' }
+    
     document.getElementById('modal-overlay').style.display = 'flex'
-    document.getElementById('f-nombre').focus()
   }
 
-  function cerrarModal() {
-    document.getElementById('modal-overlay').style.display = 'none'
-    editandoId = null
-  }
-
-  document.getElementById('btn-cerrar-modal').addEventListener('click', cerrarModal)
-  document.getElementById('btn-cancelar').addEventListener('click', cerrarModal)
-
-  document.getElementById('modal-overlay').addEventListener('click', e => {
-    if (e.target === document.getElementById('modal-overlay')) cerrarModal()
-  })
-
-  // ── Preview de imagen ──────────────────────────
-
-  document.getElementById('f-imagen').addEventListener('change', async (e) => {
-    const file = e.target.files[0]
-    if (!file) {
+  // ✅ EVENTO NUEVO PARA PREVISUALIZAR Y CAPTURAR LA FOTO
+  document.getElementById('f-imagen').addEventListener('change', e => {
+    imagenSeleccionada = e.target.files[0]
+    if (imagenSeleccionada) {
+      const reader = new FileReader()
+      reader.onload = ev => {
+        document.getElementById('imagen-preview-img').src = ev.target.result
+        document.getElementById('imagen-preview').style.display = 'block'
+      }
+      reader.readAsDataURL(imagenSeleccionada)
+    } else {
       document.getElementById('imagen-preview').style.display = 'none'
-      document.getElementById('imagen-info').style.display = 'none'
-      return
     }
-
-    // Mostrar preview
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      document.getElementById('imagen-preview-img').src = event.target.result
-      document.getElementById('imagen-preview').style.display = 'block'
-    }
-    reader.readAsDataURL(file)
-
-    // Guardar para usar al guardar
-    imagenSeleccionada = file
-
-    // Mostrar info
-    const sizeMB = (file.size / 1024 / 1024).toFixed(2)
-    document.getElementById('imagen-info').textContent = `${file.name} (${sizeMB}MB)`
-    document.getElementById('imagen-info').style.display = 'block'
   })
 
-  // ── Guardar ───────────────────────────────────────
 
+  
+
+  // ✅ GUARDADO COMPLETO DE TODOS LOS DATOS
   document.getElementById('btn-guardar').addEventListener('click', async () => {
-    const nombre    = document.getElementById('f-nombre').value.trim()
-    const precio    = parseFloat(document.getElementById('f-precio').value)
-    const stock     = parseInt(document.getElementById('f-stock').value)
-    const categoria = document.getElementById('f-categoria').value
-    const desc      = document.getElementById('f-descripcion').value.trim()
-
-    if (!nombre || isNaN(precio) || isNaN(stock)) {
-      toast('Completá los campos obligatorios.', 'error')
-      return
-    }
-
     const btn = document.getElementById('btn-guardar')
-    btn.textContent = 'Guardando...'
-    btn.disabled = true
+    btn.disabled = true; btn.textContent = 'Guardando...'
 
     try {
       let imagenUrl = null
-
-      // Si hay imagen nueva, procesarla y subirla
       if (imagenSeleccionada) {
-        btn.textContent = 'Optimizando imagen...'
-        
-        // Generar ID temporal si es producto nuevo
-        const idParaImagen = editandoId || `temp-${Date.now()}`
-        
-        try {
-          imagenUrl = await procesarYSubirImagen(imagenSeleccionada, idParaImagen, {
-            maxWidth: 800,
-            maxHeight: 800,
-            quality: 0.85,
-            maxSizeKB: 500
-          })
-        } catch (err) {
-          toast(`Error al subir imagen: ${err.message}`, 'error')
-          btn.textContent = 'Guardar'
-          btn.disabled = false
-          return
+        imagenUrl = await procesarYSubirImagen(imagenSeleccionada, editandoId || `temp-${Date.now()}`)
+      }
+
+      // Procesar Genética y Sabor convirtiéndolos en arrays
+      const geneticaVal = document.getElementById('f-genetica').value.trim()
+      const saborVal = document.getElementById('f-sabor').value.trim()
+
+      // 👇 AQUÍ INICIA EL CÓDIGO DEL PASO 3: Lógica de la categoría nueva
+      let categoriaFinal = document.getElementById('f-categoria').value;
+      if (categoriaFinal === 'NUEVA') {
+        categoriaFinal = document.getElementById('f-nueva-categoria').value.trim();
+        if (!categoriaFinal) {
+          toast('Por favor, escribí el nombre de la nueva categoría', 'error');
+          btn.disabled = false; btn.textContent = 'Guardar'; // Reactiva el botón
+          return; // Frena el guardado
         }
       }
+      // 👆 FIN DE LA LÓGICA DE CATEGORÍA
 
       const datos = {
-        nombre,
-        precio,
-        stock,
-        categoria: categoria || null,
-        descripcion: desc || null,
-        ...(imagenUrl && { imagen_url: imagenUrl })
+        nombre: document.getElementById('f-nombre').value.trim(),
+        marca: document.getElementById('f-marca').value.trim() || null,
+        
+        // 👇 Aquí usamos la variable que acabamos de crear
+        categoria: categoriaFinal || null, 
+        
+        descripcion: document.getElementById('f-descripcion').value.trim() || null,
+        precio_costo: parseFloat(document.getElementById('f-precio-costo').value) || 0,
+        precio_venta: parseFloat(document.getElementById('f-precio-venta').value) || 0,
+        stock: parseInt(document.getElementById('f-stock').value) || 0,
+        cantidad: parseFloat(document.getElementById('f-cantidad').value) || null,
+        unidad: document.getElementById('f-unidad').value,
+        genetica: geneticaVal ? geneticaVal.split(',').map(s => s.trim()) : null,
+        sabor: saborVal ? saborVal.split(',').map(s => s.trim()) : null,
+        updated_at: new Date()
       }
+      
+      // Solo actualiza la imagen si subieron una nueva
+      if (imagenUrl) datos.imagen_url = imagenUrl
 
-      btn.textContent = 'Guardando producto...'
+      const { error } = editandoId 
+        ? await supabase.from('productos').update(datos).eq('id', editandoId)
+        : await supabase.from('productos').insert(datos)
 
-      let error
-      if (editandoId) {
-        ;({ error } = await supabase.from('productos').update(datos).eq('id', editandoId))
-      } else {
-        ;({ error } = await supabase.from('productos').insert(datos))
-      }
+      if (error) throw error
 
-      btn.textContent = 'Guardar'
-      btn.disabled = false
-
-      if (error) { 
-        toast('Error al guardar.', 'error')
-        return 
-      }
-
-      toast(editandoId ? 'Producto actualizado ✓' : 'Producto agregado ✓', 'success')
-      cerrarModal()
-      await cargar()
-      imagenSeleccionada = null
-    } catch (err) {
-      console.error(err)
-      toast('Error inesperado', 'error')
-      btn.textContent = 'Guardar'
-      btn.disabled = false
+      toast('Se ha guardado correctamente ✓', 'success')
+      sessionStorage.removeItem('cache_productos');
+      cerrarModal(); await cargar()
+    } catch (e) {
+      console.error(e)
+      toast('Error al guardar', 'error')
+    } finally {
+      btn.disabled = false; btn.textContent = 'Guardar'
     }
   })
 
-  // ── Editar / Eliminar / Detalle (exponer globales) ────────
+  function cerrarModal() { document.getElementById('modal-overlay').style.display = 'none'; editandoId = null }
 
-  window.editarProducto = (id) => {
+
+  document.getElementById('btn-cerrar-modal').onclick = cerrarModal
+  document.getElementById('btn-cancelar').onclick = cerrarModal
+  document.getElementById('btn-nuevo').onclick = () => abrirModal(null)
+  window.irAlDetalle = (id) => window.location.href = `producto-detalle.html?id=${id}`
+
+
+    // Muestra el input de texto si el usuario elige "NUEVA"
+  window.toggleNuevaCategoria = () => {
+    const select = document.getElementById('f-categoria');
+    const inputNueva = document.getElementById('f-nueva-categoria');
+    if (select.value === 'NUEVA') {
+      inputNueva.style.display = 'block';
+      inputNueva.focus();
+    } else {
+      inputNueva.style.display = 'none';
+      inputNueva.value = '';
+    }
+  }
+
+
+   window.editarProducto = (id) => {
     const p = productos.find(x => x.id === id)
     if (p) abrirModal(p)
   }
 
-  window.eliminarProducto = async (id, nombre) => {
-    if (!confirm(`¿Eliminar "${nombre}"? Esta acción no se puede deshacer.`)) return
-    const { error } = await supabase.from('productos').delete().eq('id', id)
-    if (error) { toast('Error al eliminar.', 'error'); return }
-    toast('Producto eliminado', 'default')
-    await cargar()
+
+  window.eliminarProducto = async (id) => {
+    const p = productos.find(x => x.id === id);
+    
+    // ✅ Aquí usamos el modal que creamos, con fondo negro y estilizado
+    const confirmado = await confirmar(`¿Eliminar producto "${p?.nombre || ''}"? Esta acción no se puede deshacer.`, '¿Eliminar producto?');
+    if (!confirmado) return;
+    
+    const { error } = await supabase.from('productos').delete().eq('id', id);
+    if (error) { toast('Error al eliminar el producto', 'error'); return; }
+    
+    toast('Producto eliminado', 'success');
+    sessionStorage.removeItem('cache_productos');
+    await cargar();
   }
 
-  window.irAlDetalle = (id) => {
-    window.location.href = `/pages/producto-detalle.html?id=${id}`
-  }
+
+  // ── Buscador de productos ────────────────────────
+  document.getElementById('search').addEventListener('input', e => {
+    const q = e.target.value.toLowerCase()
+    
+    // Filtra por nombre, categoría o marca
+    const filtrados = productos.filter(p =>
+      p.nombre.toLowerCase().includes(q) ||
+      (p.categoria ?? '').toLowerCase().includes(q) ||
+      (p.marca ?? '').toLowerCase().includes(q)
+    )
+    
+    renderTabla(filtrados)
+  })
+
 
   await cargar()
 </script>
-
 </body>
 </html>

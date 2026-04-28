@@ -1,7 +1,18 @@
 -- ══════════════════════════════════════════════════════
---  FlorandoSur — Setup de base de datos
+--  FlorandoSur — Setup de base de datos (v2.0)
 --  Ejecutar en: Supabase > SQL Editor > New query
 -- ══════════════════════════════════════════════════════
+
+-- 0. Perfiles de Usuario
+CREATE TABLE IF NOT EXISTS profiles (
+  id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  nombre      TEXT,
+  email       TEXT,
+  foto_url    TEXT,
+  telefono    TEXT,
+  rol         TEXT DEFAULT 'delivery',
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
 
 -- 1. Clientes
 CREATE TABLE IF NOT EXISTS clientes (
@@ -10,78 +21,184 @@ CREATE TABLE IF NOT EXISTS clientes (
   telefono    TEXT,
   direccion   TEXT,
   notas       TEXT,
-  created_at  TIMESTAMPTZ DEFAULT NOW()
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. Productos (inventario)
+-- 2. Productos (inventario v2.0)
 CREATE TABLE IF NOT EXISTS productos (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nombre      TEXT NOT NULL,
   descripcion TEXT,
-  precio      NUMERIC(10,2) NOT NULL DEFAULT 0,
+  precio_costo      NUMERIC(10,2) NOT NULL DEFAULT 0,
+  precio_venta      NUMERIC(10,2) NOT NULL DEFAULT 0,
   stock       INTEGER NOT NULL DEFAULT 0,
   categoria   TEXT,
+  marca       TEXT,
+  genetica    TEXT[],
+  sabor       TEXT[],
+  cantidad    NUMERIC(10,2),
+  unidad      TEXT,
   imagen_url  TEXT,
-  created_at  TIMESTAMPTZ DEFAULT NOW()
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. Ventas
+-- 3. Ventas (v2.0)
 CREATE TABLE IF NOT EXISTS ventas (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   cliente_id  UUID REFERENCES clientes(id) ON DELETE SET NULL,
   total       NUMERIC(10,2) NOT NULL,
+  descuento   NUMERIC(10,2) DEFAULT 0,
+  tipo_descuento TEXT,
+  precio_final NUMERIC(10,2) NOT NULL,
   metodo_pago TEXT,
-  created_at  TIMESTAMPTZ DEFAULT NOW()
+  usuario_id  UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. Detalle de ventas
+-- 4. Detalle de ventas (v2.0)
 CREATE TABLE IF NOT EXISTS detalle_ventas (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venta_id        UUID REFERENCES ventas(id) ON DELETE CASCADE,
+  venta_id        UUID NOT NULL REFERENCES ventas(id) ON DELETE CASCADE,
   producto_id     UUID REFERENCES productos(id) ON DELETE SET NULL,
   cantidad        INTEGER NOT NULL,
-  precio_unitario NUMERIC(10,2) NOT NULL
+  precio_unitario NUMERIC(10,2) NOT NULL,
+  descuento_item  NUMERIC(10,2) DEFAULT 0,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 5. Pedidos / Deliveries
+-- 5. Pedidos / Deliveries (v2.0)
 CREATE TABLE IF NOT EXISTS pedidos (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   cliente_id        UUID REFERENCES clientes(id) ON DELETE SET NULL,
+  usuario_delivery_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   estado            TEXT NOT NULL DEFAULT 'pendiente',
   direccion_entrega TEXT,
+  telefono_entrega  TEXT,
   notas             TEXT,
+  productos_json    JSONB,
+  total             NUMERIC(10,2),
   created_at        TIMESTAMPTZ DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT estado_valido CHECK (estado IN ('pendiente','en_camino','entregado'))
 );
 
 -- ══════════════════════════════════════════════════════
---  Seguridad: Row Level Security (RLS)
---  Permite que solo usuarios autenticados accedan
+--  Seguridad: Row Level Security (RLS) v2.0
+--  Políticas granulares por rol
 -- ══════════════════════════════════════════════════════
 
-ALTER TABLE clientes       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE productos      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE ventas         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE detalle_ventas ENABLE ROW LEVEL SECURITY;
-ALTER TABLE pedidos        ENABLE ROW LEVEL SECURITY;
+-- Habilitar RLS en todas las tablas
+ALTER TABLE profiles         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE clientes         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE productos        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ventas           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE detalle_ventas   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pedidos          ENABLE ROW LEVEL SECURITY;
 
--- Políticas: acceso total a usuarios autenticados
--- (podés hacer más granular después según roles)
+-- ── PROFILES ────────────────────────────────────────
+-- Cada usuario puede ver/editar su propio perfil
+CREATE POLICY "users_view_own_profile" ON profiles
+  FOR SELECT USING (auth.uid() = id);
 
-CREATE POLICY "acceso autenticados" ON clientes
-  FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "users_update_own_profile" ON profiles
+  FOR UPDATE USING (auth.uid() = id);
 
-CREATE POLICY "acceso autenticados" ON productos
-  FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "users_insert_own_profile" ON profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
 
-CREATE POLICY "acceso autenticados" ON ventas
-  FOR ALL USING (auth.role() = 'authenticated');
+-- ── CLIENTES ────────────────────────────────────────
+-- Acceso total a admins
+CREATE POLICY "admin_full_access_clientes" ON clientes
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND rol = 'admin'
+    )
+  );
 
-CREATE POLICY "acceso autenticados" ON detalle_ventas
-  FOR ALL USING (auth.role() = 'authenticated');
+-- Delivery solo puede leer
+CREATE POLICY "delivery_read_clientes" ON clientes
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND rol = 'delivery'
+    )
+  );
 
-CREATE POLICY "acceso autenticados" ON pedidos
-  FOR ALL USING (auth.role() = 'authenticated');
+-- ── PRODUCTOS ────────────────────────────────────────
+-- Acceso total a admins
+CREATE POLICY "admin_full_access_productos" ON productos
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND rol = 'admin'
+    )
+  );
+
+-- Delivery solo lectura (inventario read-only)
+CREATE POLICY "delivery_read_productos" ON productos
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND rol = 'delivery'
+    )
+  );
+
+-- ── VENTAS ──────────────────────────────────────────
+-- Acceso total a admins
+CREATE POLICY "admin_full_access_ventas" ON ventas
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND rol = 'admin'
+    )
+  );
+
+-- Delivery no accede a ventas
+-- (podés cambiar esto si lo necesitas)
+
+-- ── DETALLE_VENTAS ──────────────────────────────────
+CREATE POLICY "admin_full_access_detalle_ventas" ON detalle_ventas
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND rol = 'admin'
+    )
+  );
+
+-- ── PEDIDOS ─────────────────────────────────────────
+-- Admins acceso total
+CREATE POLICY "admin_full_access_pedidos" ON pedidos
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND rol = 'admin'
+    )
+  );
+
+-- Delivery solo sus propios pedidos
+CREATE POLICY "delivery_own_pedidos" ON pedidos
+  FOR SELECT USING (
+    usuario_delivery_id = auth.uid()
+    OR
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND rol = 'admin'
+    )
+  );
+
+CREATE POLICY "delivery_update_own_pedidos" ON pedidos
+  FOR UPDATE USING (
+    usuario_delivery_id = auth.uid()
+    OR
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND rol = 'admin'
+    )
+  );
 
 
 -- ══════════════════════════════════════════════════════

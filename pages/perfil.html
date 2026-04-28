@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlorandoSur — Mi Perfil</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body>
+<div class="app-shell">
+  <div style="display:flex; flex-direction:column; overflow:hidden;">
+    <header class="topbar"><span class="page-title">Mi Perfil</span></header>
+    <main class="main-content fade-up">
+      <div class="card" style="max-width:600px; margin:0 auto; padding:32px;">
+        <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:32px;">
+          <div id="avatar-container" class="user-avatar" style="width:120px; height:120px; font-size:48px; border:2px solid var(--border); transition:transform 0.2s ease;">
+            <img id="foto-preview" src="" alt="Foto" style="width:100%; height:100%; object-fit:cover; display:none;" />
+            <div id="avatar-iniciales">--</div>
+          </div>
+          <button class="btn btn-ghost" id="btn-cambiar-foto" style="font-size:13px; margin-top:8px;">Cambiar foto</button>
+          <input type="file" id="file-foto" accept="image/*" style="display:none;" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombre *</label>
+          <input id="f-nombre" type="text" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Teléfono</label>
+          <input id="f-telefono" type="tel" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tu Rol</label>
+          <div class="form-control" style="background:var(--border); color:var(--text-muted);"><span id="f-rol">--</span></div>
+        </div>
+
+        <div id="section-admin-only" style="display:none; margin-top:32px; padding-top:24px; border-top:1px solid var(--border);">
+          <h3 style="margin-bottom:16px; font-size:14px; color:var(--accent);">Personalización de Empresa</h3>
+          <div class="form-group">
+            <label class="form-label">Cambiar Logo</label>
+            <input id="f-brand-logo" type="file" class="form-control" accept="image/*" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nombre Empresa</label>
+            <input id="f-system-name" type="text" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Subtítulo (Gestión)</label>
+            <input id="f-system-tagline" type="text" class="form-control" />
+          </div>
+        </div>
+
+        <div style="display:flex; gap:12px; margin-top:24px;">
+          <button class="btn btn-primary" id="btn-guardar" style="flex:1;">Guardar cambios</button>
+          <button id="btn-cancelar" class="btn btn-ghost" style="flex:1;">Cancelar</button>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div id="toast-container"></div>
+
+<script type="module">
+  import { supabase, requiereAuth, toast } from '../js/supabase.js'
+  import { renderSidebar } from '../js/sidebar.js'
+
+  let usuarioActual, fotoFile, brandLogoFile, fotoModificada = false
+
+  async function init() {
+    usuarioActual = await requiereAuth()
+    const { data: profile } = await supabase.from('profiles').select('*').eq('id', usuarioActual.id).single()
+    if (profile) {
+      document.getElementById('f-nombre').value = profile.nombre || ''
+      document.getElementById('f-telefono').value = profile.telefono || ''
+      
+      // Mostrar rol de forma amigable
+      const rolRaw = profile.rol ? profile.rol.toLowerCase() : 'delivery'
+      let rolLabel = 'Usuario'
+      if (rolRaw === 'admin') rolLabel = 'Administrador'
+      if (rolRaw === 'delivery') rolLabel = 'Repartidor / Delivery'
+      
+      document.getElementById('f-rol').textContent = rolLabel
+      
+      if (profile.foto_url) {
+        document.getElementById('foto-preview').src = profile.foto_url
+        document.getElementById('foto-preview').style.display = 'block'
+        document.getElementById('avatar-iniciales').style.display = 'none'
+      }
+      if (profile.rol === 'admin') {
+        document.getElementById('section-admin-only').style.display = 'block'
+        const { data: settings } = await supabase.from('system_settings').select('*')
+        document.getElementById('f-system-name').value = settings?.find(s => s.id === 'system_name')?.value || ''
+        document.getElementById('f-system-tagline').value = settings?.find(s => s.id === 'system_tagline')?.value || ''
+      }
+    }
+    renderSidebar('perfil', usuarioActual)
+  }
+
+  document.getElementById('btn-cambiar-foto').addEventListener('click', () => document.getElementById('file-foto').click())
+  document.getElementById('file-foto').addEventListener('change', e => {
+    fotoFile = e.target.files[0]; fotoModificada = true
+    const reader = new FileReader()
+    reader.onload = ev => { 
+      document.getElementById('foto-preview').src = ev.target.result
+      document.getElementById('foto-preview').style.display = 'block'
+      document.getElementById('avatar-iniciales').style.display = 'none'
+    }
+    reader.readAsDataURL(fotoFile)
+  })
+
+  document.getElementById('f-brand-logo').addEventListener('change', e => brandLogoFile = e.target.files[0])
+  document.getElementById('btn-cancelar').addEventListener('click', () => {
+    const rol = document.getElementById('f-rol').textContent.toLowerCase();
+    window.location.replace(rol === 'administrador' ? 'dashboard.html' : 'pedidos.html')
+  })
+
+  document.getElementById('btn-guardar').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-guardar')
+    btn.disabled = true; btn.textContent = 'Guardando...'
+    try {
+      // 1. Guardar Perfil
+      let fotoUrl = null
+      if (fotoModificada && fotoFile) {
+        const name = `fotos/${usuarioActual.id}-${Date.now()}.webp`
+        await supabase.storage.from('perfiles').upload(name, fotoFile)
+        fotoUrl = supabase.storage.from('perfiles').getPublicUrl(name).data.publicUrl
+      }
+      const updates = { id: usuarioActual.id, nombre: document.getElementById('f-nombre').value, telefono: document.getElementById('f-telefono').value, updated_at: new Date() }
+      if (fotoUrl) updates.foto_url = fotoUrl
+      await supabase.from('profiles').upsert(updates)
+
+      // 2. Guardar Marca si es Admin (✅ CORREGIDO: ahora busca 'administrador')
+      if (document.getElementById('f-rol').textContent.toLowerCase() === 'administrador') {
+        const brandUpdates = [
+          { id: 'system_name', value: document.getElementById('f-system-name').value.trim() },
+          { id: 'system_tagline', value: document.getElementById('f-system-tagline').value.trim() }
+        ]
+        if (brandLogoFile) {
+          const name = `logo-${Date.now()}.webp`
+          await supabase.storage.from('brand').upload(name, brandLogoFile)
+          const logoUrl = supabase.storage.from('brand').getPublicUrl(name).data.publicUrl
+          brandUpdates.push({ id: 'system_logo_url', value: logoUrl })
+        }
+        await supabase.from('system_settings').upsert(brandUpdates)
+      }
+      
+      toast('Cambios guardados', 'success')
+      
+      // ✅ MAGIA: Refresca el menú lateral al instante con los nuevos datos
+      await renderSidebar('perfil', usuarioActual)
+      
+      // Esperamos 1 segundo y volvemos al Dashboard
+      setTimeout(() => {
+        window.location.href = '../index.html'
+      }, 1000)
+
+      // Restauramos el botón
+      btn.disabled = false; btn.textContent = 'Guardar cambios'
+      
+    } catch (err) {
+      toast('Error al guardar', 'error'); btn.disabled = false; btn.textContent = 'Guardar cambios'
+    }
+  })
+
+  document.getElementById('btn-cancelar').addEventListener('click', () => {
+    window.location.href = '../index.html'
+  })
+
+  init()
+</script>
+</body>
+</html>

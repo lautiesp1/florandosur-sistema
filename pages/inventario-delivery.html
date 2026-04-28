@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlorandoSur — Inventario (Consulta)</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body>
+
+<div class="app-shell">
+
+  <div style="display:flex; flex-direction:column; overflow:hidden;">
+
+    <header class="topbar">
+      <span class="page-title">Inventario (Consulta)</span>
+      <div class="topbar-actions">
+        <div class="search-box">
+          <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input id="search" type="text" class="form-control" placeholder="" style="padding-left:34px;" />
+        </div>
+      </div>
+    </header>
+
+    <main class="main-content fade-up">
+
+      <div style="
+        background: var(--accent-light);
+        border: 1px solid var(--accent);
+        border-radius: var(--radius-lg);
+        padding: 12px 16px;
+        display: flex;
+        align-items:center;
+        gap: 12px;
+        color: var(--text-primary);
+        font-size: 14px;
+        margin-bottom: 24px;
+      ">
+        <span style="font-size:18px;">🔒</span>
+        <div>Este inventario es <strong>solo lectura</strong>. Contacta al administrador para cambios.</div>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Categoría</th>
+              <th>Marca</th>
+              <th>Precio</th>
+              <th>Stock</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-body">
+            <tr>
+              <td colspan="5" style="text-align:center; padding:32px; color:var(--text-muted);">Cargando...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </main>
+  </div>
+</div>
+<div id="modal-detalle-producto" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:450px;">
+    <div class="modal-header">
+      <span class="modal-title">Detalle del Producto</span>
+      <button class="btn-icon" onclick="cerrarModalDetalleProd()">✕</button>
+    </div>
+    <div class="modal-body" id="detalle-producto-body">
+      </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModalDetalleProd()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script type="module">
+  import { supabase, requiereAuth, toast } from '../js/supabase.js'
+  import { renderSidebar } from '../js/sidebar.js'
+
+  const user = await requiereAuth()
+  renderSidebar('inventario', user)
+
+  let productos = []
+
+  // ── Cargar productos ──────────────────────────────
+
+  async function cargar() {
+    try {
+      const { data, error } = await supabase
+        .from('productos')
+        .select('*')
+        .order('nombre')
+
+      if (error) { 
+        console.error('Error:', error)
+        toast('Error al cargar productos', 'error')
+        return
+      }
+      
+      productos = data || []
+      renderTabla(productos)
+    } catch (err) {
+      console.error('Error:', err)
+      toast('Error al cargar productos', 'error')
+    }
+  }
+
+  function renderTabla(lista) {
+    const tbody = document.getElementById('tabla-body')
+    if (!lista || lista.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state">Sin productos</div></td></tr>`
+      return
+    }
+
+    tbody.innerHTML = lista.map(p => {
+      // Color del stock
+      const stockBadge = p.stock === 0 
+        ? '<span class="badge badge-red">Sin stock</span>' 
+        : p.stock <= 3 
+          ? `<span class="badge badge-yellow">${p.stock} un.</span>`
+          : `<span class="badge badge-green">${p.stock} un.</span>`
+
+      return `
+        <tr>
+          <td>
+            <div style="font-weight:500; display:flex; align-items:center;">
+              ${p.imagen_url ? `<img src="${p.imagen_url}" alt="${p.nombre}" style="width:36px; height:36px; object-fit:cover; border-radius:4px; margin-right:10px;" />` : ''}
+              ${p.nombre}
+            </div>
+          </td>
+          <td class="td-muted">${p.categoria || '—'}</td>
+          <td style="font-weight:500;">$${Number(p.precio_venta || p.precio || 0).toLocaleString('es-AR')}</td>
+          <td>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              ${stockBadge}
+              <button class="btn btn-ghost btn-sm" onclick="verDetalleProducto('${p.id}')" style="font-size:11px;">👁️ Ver ficha</button>
+            </div>
+          </td>
+        </tr>`
+    }).join('')
+  }
+
+  // ── Búsqueda ──────────────────────────────────────
+
+  document.getElementById('search').addEventListener('input', e => {
+    const q = e.target.value.toLowerCase()
+    const filtrados = productos.filter(p =>
+      p.nombre.toLowerCase().includes(q) ||
+      (p.categoria ?? '').toLowerCase().includes(q) ||
+      (p.marca ?? '').toLowerCase().includes(q) ||
+      (p.descripcion ?? '').toLowerCase().includes(q) ||
+      (p.genetica ?? []).some(g => g.toLowerCase().includes(q)) ||
+      (p.sabor ?? []).some(s => s.toLowerCase().includes(q))
+    )
+    renderTabla(filtrados)
+  })
+
+
+  // ── Ver Detalle de Producto (Modal) ──────────────────────────
+  window.verDetalleProducto = (id) => {
+    const p = productos.find(x => x.id === id);
+    if (!p) return;
+
+    const contenido = (p.cantidad || '') + ' ' + (p.unidad || '');
+    
+    let html = `
+      <div style="display:flex; gap:16px; margin-bottom:16px;">
+        ${p.imagen_url ? `<img src="${p.imagen_url}" style="width:100px; height:100px; object-fit:cover; border-radius:8px; border:1px solid var(--border);" />` : '<div style="width:100px; height:100px; background:var(--bg); border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:12px; border:1px dashed var(--border);">Sin foto</div>'}
+        <div style="flex:1;">
+          <div style="font-size:18px; font-weight:600; color:var(--text-primary); margin-bottom:4px;">${p.nombre}</div>
+          <div style="font-size:13px; color:var(--accent); font-weight:600; margin-bottom:8px;">$${Number(p.precio_venta || p.precio || 0).toLocaleString('es-AR')}</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">🏷️ Marca: ${p.marca || '—'}</div>
+          <div style="font-size:12px; color:var(--text-muted);">📦 Stock actual: <strong style="color:var(--text-primary);">${p.stock} unidades</strong></div>
+        </div>
+      </div>
+      
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px; font-size:12px; display:flex; flex-direction:column; gap:8px;">
+        <div><strong style="color:var(--text-muted);">Categoría:</strong> ${p.categoria || '—'}</div>
+        <div><strong style="color:var(--text-muted);">Contenido:</strong> ${contenido.trim() || '—'}</div>
+        <div><strong style="color:var(--text-muted);">Genética:</strong> ${(p.genetica && p.genetica.length > 0) ? p.genetica.join(', ') : '—'}</div>
+        <div><strong style="color:var(--text-muted);">Sabores:</strong> ${(p.sabor && p.sabor.length > 0) ? p.sabor.join(', ') : '—'}</div>
+      </div>
+      
+      ${p.descripcion ? `
+      <div style="margin-top:12px; font-size:12px; padding:12px; background:var(--bg); border-radius:var(--radius);">
+        <strong style="color:var(--text-muted); display:block; margin-bottom:4px;">Descripción:</strong>
+        <div style="color:var(--text-primary); line-height:1.4;">${p.descripcion}</div>
+      </div>` : ''}
+    `;
+
+    document.getElementById('detalle-producto-body').innerHTML = html;
+    document.getElementById('modal-detalle-producto').style.display = 'flex';
+  }
+
+  window.cerrarModalDetalleProd = () => {
+    document.getElementById('modal-detalle-producto').style.display = 'none';
+  }
+
+  await cargar()
+</script>
+
+</body>
+</html>
