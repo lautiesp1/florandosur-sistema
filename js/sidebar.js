@@ -89,6 +89,33 @@ export async function renderSidebar(paginaActiva = '', user = null) {
   }
   document.getElementById('btn-logout')?.addEventListener('click', logout)
   if (shell) shell.classList.add('ready')
+
+  // 👇 MAGIA PARA MÓVILES: Agregar botón de menú (Hamburguesa)
+  const topbar = document.querySelector('.topbar')
+  if (topbar && !document.querySelector('.topbar-hamburger')) {
+    const btnMenu = document.createElement('button')
+    btnMenu.className = 'topbar-hamburger'
+    btnMenu.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>`
+    
+    // Insertar el botón a la izquierda del título
+    const pageTitle = topbar.querySelector('.page-title')
+    if (pageTitle) topbar.insertBefore(btnMenu, pageTitle)
+    else topbar.appendChild(btnMenu)
+
+    // Evento para abrir y cerrar el panel lateral
+    btnMenu.addEventListener('click', () => {
+      const sidebar = document.querySelector('.sidebar')
+      if (sidebar) sidebar.classList.toggle('mobile-open')
+    })
+
+    // Evento para cerrar el panel si tocas afuera de él
+    document.addEventListener('click', (e) => {
+      const sidebar = document.querySelector('.sidebar')
+      if (sidebar && sidebar.classList.contains('mobile-open') && !sidebar.contains(e.target) && !btnMenu.contains(e.target)) {
+        sidebar.classList.remove('mobile-open')
+      }
+    })
+  }
 }
 
 // Iconos
