@@ -72,13 +72,16 @@
   }
 
   // Si ya está logueado, redirigir
-  supabase.auth.getSession().then(({ data: { session } }) => {
+  supabase.auth.getSession().then(async ({ data: { session } }) => {
     if (session) {
-      const rol = session.user?.user_metadata?.rol || 'delivery'
-      if (rol === 'delivery') {
-        window.location.href = 'pages/pedidos.html'
-      } else {
+      // Leemos el rol real de la tabla profiles
+      const { data: perfil } = await supabase.from('profiles').select('rol').eq('id', session.user.id).single()
+      const rol = perfil?.rol || 'delivery'
+      
+      if (rol === 'admin') {
         window.location.href = 'pages/dashboard.html'
+      } else {
+        window.location.href = 'pages/pedidos.html'
       }
     }
   }).catch(err => {
@@ -124,16 +127,33 @@
     if (e.key === 'Enter') btnLogin.click()
   })
 
-  function redirigir(user) {
+  async function redirigir(user) {
     try {
-      const rol = user?.user_metadata?.rol
-      if (rol === 'delivery') {
+      // Consultamos el rol real en la tabla profiles usando el ID del usuario
+      const { data: perfil, error } = await supabase
+        .from('profiles')
+        .select('rol')
+        .eq('id', user.id)
+        .single()
+
+      if (error) {
+        console.error('Error al obtener perfil:', error)
+        window.location.href = 'pages/dashboard.html' // Backup por si falla
+        return
+      }
+
+      const rol = perfil?.rol
+
+      // Redirección basada en el dato real de la tabla
+      if (rol === 'admin') {
+        window.location.href = 'pages/dashboard.html'
+      } else if (rol === 'delivery') {
         window.location.href = 'pages/pedidos.html'
       } else {
         window.location.href = 'pages/dashboard.html'
       }
     } catch (err) {
-      console.error('Error en redirección:', err)
+      console.error('Error crítico en redirección:', err)
       window.location.href = 'pages/dashboard.html'
     }
   }

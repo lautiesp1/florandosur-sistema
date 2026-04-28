@@ -18,35 +18,27 @@ const NAV_DELIVERY = [
   { section: 'Cuenta', links: [{ id: 'perfil', label: 'Mi Perfil', href: 'perfil.html', icon: iconPerfil() }] }
 ]
 
-export async function renderSidebar(paginaActiva = '', user = null) {
-  if (!user) user = await getUsuarioActual()
-  
-  // Cargar Ajustes de Marca (Logo y Nombre)
-  let brandName = 'FlorandoSur', brandTagline = 'GESTIÓN', brandLogo = '../logo.png'
-  try {
-    const { data: settings } = await supabase.from('system_settings').select('*')
-    if (settings) {
-      brandName = settings.find(s => s.id === 'system_name')?.value || brandName
-      brandTagline = settings.find(s => s.id === 'system_tagline')?.value || brandTagline
-      brandLogo = settings.find(s => s.id === 'system_logo_url')?.value || brandLogo
-    }
-  } catch (e) {}
+async function renderSidebar() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
 
-  const rol = (user?.user_metadata?.rol || 'delivery').toLowerCase()
+  // 1. Consultar el perfil real en la base de datos (una sola vez)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+  
+  const rol = profile?.rol || 'delivery'
+  const nombre = profile?.nombre || 'Usuario'
+  const rolLabel = rol === 'admin' ? 'Administrador' : 'Delivery'
+  const fotoUrl = profile?.foto_url || null
+
+  // 2. Definir qué menú mostrar (¡Esta línea faltaba!)
   const nav = rol === 'admin' ? NAV_ADMIN : NAV_DELIVERY
 
-  let nombre = user?.user_metadata?.nombre || 'Usuario'
-  let rolLabel = rol === 'admin' ? 'Administrador' : 'Delivery'
-  let fotoUrl = null
-
-  try {
-    const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-    if (profile) {
-      nombre = profile.nombre || nombre
-      rolLabel = (profile.rol?.toLowerCase() || rol) === 'admin' ? 'Administrador' : 'Delivery'
-      fotoUrl = profile.foto_url
-    }
-  } catch (e) {}
+  // 3. Detectar la página actual para pintar el botón de verde (¡Esta línea faltaba!)
+  const paginaActiva = window.location.pathname.split('/').pop().replace('.html', '') || 'dashboard'
 
   const iniciales = nombre.slice(0, 2).toUpperCase()
   const navHtml = nav.map(group => `
