@@ -822,10 +822,12 @@ select.form-control { cursor: pointer; }
   .topbar {
     grid-column: 1;
     grid-row: 1;
-    padding: 0 10px;
-    height: 50px;
+    padding: 10px;
+    height: auto;           /* Permite que la barra crezca */
+    min-height: 60px;
     flex-wrap: wrap;
     justify-content: space-between;
+    gap: 12px;
   }
 
   .page-title {
@@ -838,6 +840,7 @@ select.form-control { cursor: pointer; }
     gap: 8px;
     width: 100%;
     order: 3;
+    padding-bottom: 8px;    /* Da espacio para que el botón se vea y se pueda tocar */
   }
 
   .topbar-hamburger {
@@ -918,18 +921,24 @@ select.form-control { cursor: pointer; }
     padding: 12px 16px;
   }
 
-  table { font-size: 12px; }
-
-  thead th {
-    padding: 8px 12px;
-    font-size: 10px;
+  /* Contenedores con scroll para que la tabla respire */
+  .table-wrapper, #ultimas-ventas, #pedidos-activos, #alertas-stock-lista {
+    width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
   }
 
-  tbody td {
-    padding: 8px 12px;
-    font-size: 12px;
+  table { 
+    font-size: 13.5px; 
+    min-width: 750px !important; /* Fija un ancho mínimo para que NO se aplasten las columnas */
   }
 
+  thead th, tbody td {
+    padding: 12px 16px;
+    white-space: nowrap !important; /* Obliga al texto a quedarse en una sola línea, súper prolijo */
+  }
+  
   .search-box { max-width: 100%; }
 
   .login-card {
