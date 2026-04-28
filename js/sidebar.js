@@ -18,6 +18,11 @@ const NAV_DELIVERY = [
   { section: 'Cuenta', links: [{ id: 'perfil', label: 'Mi Perfil', href: 'perfil.html', icon: iconPerfil() }] }
 ]
 
+// 👇 ESTAS SON LAS 3 LÍNEAS QUE FALTABAN PARA QUE EL LOGO NO DE ERROR
+const brandLogo = '../logo.png'
+const brandName = 'FlorandoSur'
+const brandTagline = 'GESTIÓN'
+
 export async function renderSidebar() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return

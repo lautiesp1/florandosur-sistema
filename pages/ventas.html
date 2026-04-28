@@ -281,7 +281,19 @@
 
   function renderTabla() {
   const tbody = document.getElementById('tabla-body');
-  // ... (código de validación de lista vacía) ...
+  
+  // 👇 AGREGAMOS EL MENSAJE DE VACÍO AQUÍ 👇
+  if (ventas.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 14px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 8px; opacity: 0.5;"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <br>No hay ventas registradas aún.
+        </td>
+      </tr>
+    `;
+    return; // Frenamos la función para que no dibuje nada más
+  }
   tbody.innerHTML = ventas.map(v => {
     const fecha = new Date(v.created_at).toLocaleDateString('es-AR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
 

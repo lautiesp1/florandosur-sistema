@@ -202,6 +202,19 @@
 
   function renderTabla(lista) {
     const tbody = document.getElementById('tabla-body')
+
+    // 👇 AGREGAMOS EL MENSAJE DE VACÍO AQUÍ 👇
+    if (lista.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 14px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 8px; opacity: 0.5;"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+            <br>No hay productos cargados en el inventario.
+          </td>
+        </tr>
+      `;
+      return; // Frenamos la función para que no dibuje nada más
+    }
     tbody.innerHTML = lista.map(p => `
       <tr onclick="irAlDetalle('${p.id}')" style="cursor:pointer;">
         <td><div style="font-weight:500;">${p.nombre}</div></td>
