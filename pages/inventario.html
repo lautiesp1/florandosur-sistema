@@ -69,14 +69,9 @@
           <label class="form-label">Categoría</label>
           <select id="f-categoria" class="form-control" onchange="toggleNuevaCategoria()">
             <option value="">Seleccionar categoría...</option>
-            <option value="vaporizadores">Vaporizadores</option>
-            <option value="Extractos">Extractos</option>
-            <option value="liquidos">Líquidos</option>
-            <option value="pods">Pods</option>
-            <option value="accesorios">Accesorios</option>
             <option value="NUEVA" style="font-weight:bold; color:var(--accent);">➕ Agregar nueva categoría...</option>
           </select>
-          <input type="text" id="f-nueva-categoria" class="form-control" style="display:none; margin-top:8px;" placeholder="">
+          <input type="text" id="f-nueva-categoria" class="form-control" style="display:none; margin-top:8px;" placeholder="Ej: Semillas, Fertilizantes...">
         </div>
         <div class="form-group">
           <label class="form-label">Precio de Costo ($) *</label>
@@ -166,8 +161,8 @@
     const select = document.getElementById('f-categoria');
     if (!select) return;
 
-    // 1. Categorías base por si borras todos los productos
-    const base = ['Vaporizadores', 'Líquidos', 'Pods', 'Accesorios', 'Resistencias'];
+    // 1. Empezamos sin categorías base, que el usuario cree las suyas
+    const base = [];
     
     // 2. Juntamos las base con las que ya están en tu base de datos
     const categoriasCrudas = [...base, ...productos.map(p => p.categoria).filter(Boolean)];
