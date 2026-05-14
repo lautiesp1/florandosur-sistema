@@ -486,9 +486,6 @@
     else if (tipoDescuento === 'promocion-custom') {
       descuento = val < 1 ? subtotal * val : val
     } 
-    else if (!tipoDescuento && metodo === 'Efectivo') {
-      descuento = subtotal * 0.10
-    }
     
     return descuento
   }
@@ -531,10 +528,6 @@
       descuento = val < 1 ? subtotal * val : val;
       textoExplicativo = 'Promoción especial aplicada';
     } 
-    else if (!tipoDescuento && metodo === 'Efectivo') {
-      descuento = subtotal * 0.10;
-      textoExplicativo = '10% OFF por pago en Efectivo';
-    }
 
     const totalFinal = Math.max(0, subtotal - descuento)
 
@@ -861,7 +854,7 @@
       else if (venta.tipo_descuento === 'porcentaje-custom') textoPromo = '(Descuento %)';
       else if (venta.tipo_descuento === 'fijo') textoPromo = '(Monto fijo)';
       else if (venta.tipo_descuento === 'promocion-custom') textoPromo = '(Promo especial)';
-      else if (!venta.tipo_descuento && venta.metodo_pago === 'Efectivo') textoPromo = '(10% por Efectivo)';
+
 
       html += `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; font-size:13px; color:var(--accent);">

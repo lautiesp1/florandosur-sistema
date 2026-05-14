@@ -70,14 +70,14 @@
     </div>
     <div class="modal-body">
       <div class="form-group">
-        <label class="form-label">Cliente *</label>
+        <label class="form-label">Cliente (opcional)</label>
         <select id="f-cliente" class="form-control">
-          <option value="">Seleccioná un cliente...</option>
+          <option value="">Sin cliente (pedido directo)</option>
         </select>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Dirección de entrega *</label>
+        <label class="form-label">Dirección de entrega (opcional)</label>
         <input id="f-direccion" class="form-control" type="text" placeholder="" />
       </div>
 
@@ -385,7 +385,7 @@
 
   function poblarSelectClientes() {
     const sel = document.getElementById('f-cliente')
-    sel.innerHTML = '<option value="">Seleccioná un cliente...</option>' +
+    sel.innerHTML = '<option value="">Sin cliente (pedido directo)</option>' +
       clientes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')
   }
 
@@ -517,8 +517,7 @@
     const telefono = document.getElementById('f-telefono').value.trim()
     const notas = document.getElementById('f-notas').value.trim()
 
-    if (!clienteId) { toast('Seleccioná un cliente.', 'error'); return }
-    if (!direccion) { toast('Ingresá la dirección de entrega.', 'error'); return }
+    // ❌ Quitamos los "if" que obligaban a poner cliente y dirección
     if (productosSeleccionados.length === 0) { toast('Agregá al menos un producto.', 'error'); return }
     if (telefono && !validarTelefono(telefono)) { toast('Teléfono inválido. Usa números, + y espacios.', 'error'); return }
 
@@ -535,8 +534,8 @@
 
     const editingId = document.getElementById('modal-overlay').dataset.editingId
     const payload = {
-      cliente_id: clienteId,
-      direccion_entrega: direccion,
+      cliente_id: clienteId || null, // ✅ Se envía null si está vacío (evita crasheos de Supabase)
+      direccion_entrega: direccion || null, // ✅ Se envía null si está vacío
       telefono_entrega: telefono || null,
       notas: notas || null,
       productos_json: productosSeleccionados.length > 0 ? productosSeleccionados : null
